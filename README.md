@@ -37,3 +37,5 @@ Este repositorio contiene una aplicación móvil básica de autenticación de us
 * **JDK:** Versión 17 o superior.
 * **SDK Mínimo (minSdk):** API 24 (Android 7.0) o superior.
 * **Dispositivo:** Emulador de Android (AVD) o dispositivo físico con Depuración USB activada.
+
+aqui axel
