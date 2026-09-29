@@ -5,11 +5,7 @@ plugins {
 
 android {
     namespace = "com.losdebuggers.oftapp"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37 // <-- Cambiado a 37
 
     defaultConfig {
         applicationId = "com.losdebuggers.oftapp"
