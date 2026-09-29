@@ -3,45 +3,38 @@ package com.losdebuggers.oftapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.losdebuggers.oftapp.ui.screens.ExamenesScreen
 import com.losdebuggers.oftapp.ui.theme.OftAppTheme
+import com.losdebuggers.oftapp.viewmodel.ExamenViewModel
 
 class MainActivity : ComponentActivity() {
+
+    // Instanciamos el ViewModel
+    private val examenViewModel: ExamenViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             OftAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // Llamamos a la pantalla de Exámenes
+                    ExamenesScreen(
+                        viewModel = examenViewModel,
+                        onExamenClick = { id ->
+                            // Por ahora solo imprime en consola al hacer clic
+                            println("Examen seleccionado ID: $id")
+                        }
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    OftAppTheme {
-        Greeting("Android")
     }
 }
