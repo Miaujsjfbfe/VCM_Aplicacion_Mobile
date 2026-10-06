@@ -8,14 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.losdebuggers.oftapp.ui.screens.ExamenesScreen
+import com.losdebuggers.oftapp.ui.screens.LoginScreen
 import com.losdebuggers.oftapp.ui.theme.OftAppTheme
-import com.losdebuggers.oftapp.viewmodel.ExamenViewModel
+import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 
 class MainActivity : ComponentActivity() {
 
-    // Instanciamos el ViewModel
-    private val examenViewModel: ExamenViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,12 +24,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Llamamos a la pantalla de Exámenes
-                    ExamenesScreen(
-                        viewModel = examenViewModel,
-                        onExamenClick = { id ->
-                            // Por ahora solo imprime en consola al hacer clic
-                            println("Examen seleccionado ID: $id")
+                    LoginScreen(
+                        viewModel = loginViewModel,
+                        onLoginSuccess = {
+                            println("Login correcto -> Navegar al Home / InicioScreen")
                         }
                     )
                 }
