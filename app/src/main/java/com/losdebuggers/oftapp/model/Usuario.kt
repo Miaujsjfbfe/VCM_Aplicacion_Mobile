@@ -1,8 +1,9 @@
 package com.losdebuggers.oftapp.model
 
 data class Usuario(
-    val id: String,
+    val id: Long,
     val nombre: String,
+    val rut: String,
     val email: String,
-    val rol: String // p. ej. "Oftalmólogo", "Administrativo"
+    val rol: String // "Tecnólogo", "Oftalmólogo", "Paciente", "Admin"
 )

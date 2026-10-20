@@ -1,398 +1,250 @@
 package com.losdebuggers.oftapp.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.losdebuggers.oftapp.model.Usuario
+import com.losdebuggers.oftapp.ui.theme.*
+import kotlinx.coroutines.launch
 
-// Colores personalizados según el diseño
-val PurplePrimary = Color(0xFF4A148C)
-val PurpleLightContainer = Color(0xFFF3E5F5)
-val PurpleSurface = Color(0xFFF8F0FC)
-
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Pantalla de inicio de salud: saludo según el usuario en sesión (SQLite),
+ * próxima cita, accesos rápidos (recetas, informes, citas, exámenes) y actividad reciente.
+ */
 @Composable
 fun InicioScreen(
-    onNavigateToExamenes: () -> Unit
+    usuario: Usuario,
+    onNavigateToExamenes: () -> Unit,
+    onLogout: () -> Unit
 ) {
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var confirmarSalida by remember { mutableStateOf(false) }
+
+    // Módulos aún no implementados -> aviso breve
+    val proximamente: (String) -> Unit = { modulo ->
+        scope.launch { snackbar.showSnackbar("$modulo estará disponible pronto") }
+    }
+
     Scaffold(
-        containerColor = PurpleSurface,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { onNavigateToExamenes() },
-                containerColor = PurplePrimary,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nuevo Examen")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Nuevo Examen", fontWeight = FontWeight.Bold)
-            }
-        }
+        containerColor = ColorFondo,
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+            // 1. Cabecera con saludo
+            item { Cabecera(usuario, onLogoutClick = { confirmarSalida = true }) }
 
-            // 1. Encabezado Doctor y Sucursal
+            // 2. Próxima cita
+            item {
+                Column(Modifier.padding(horizontal = 16.dp).offset(y = (-36).dp)) {
+                    ProximaCitaCard(onClick = { proximamente("Historial de citas") })
+                }
+            }
+
+            // 3. Accesos rápidos
             item {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(PurpleLightContainer)
-                        .padding(16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp).offset(y = (-36).dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.White
-                        ) {
-                            Text(
-                                text = "🪪 Tecnólogo Médico • Oftalmología",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = PurplePrimary
-                            )
-                        }
-                        Text(
-                            text = "📍 Sucursal Central",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
-                        )
+                    Titulo("Accesos rápidos")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AccesoRapido(Icons.Default.Edit, "Recetas", "3 vigentes", Modifier.weight(1f)) { proximamente("Recetas") }
+                        AccesoRapido(Icons.AutoMirrored.Filled.List, "Informes médicos", "2 nuevos", Modifier.weight(1f)) { proximamente("Informes médicos") }
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            modifier = Modifier.size(48.dp),
-                            shape = CircleShape,
-                            color = PurplePrimary
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = "Avatar",
-                                tint = Color.White,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Hoy, 24 de Mayo • Turno Mañana",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = "¡Hola, Dr. Camilo Aranci...",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AccesoRapido(Icons.Default.DateRange, "Historial de citas", "12 registros", Modifier.weight(1f)) { proximamente("Historial de citas") }
+                        AccesoRapido(Icons.Default.Visibility, "Exámenes", "OCT • Tonometría", Modifier.weight(1f), onClick = onNavigateToExamenes)
                     }
                 }
             }
 
-            // 2. Rendimiento del Día
+            // 4. Actividad reciente
             item {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Rendimiento del Día",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "🔄 En tiempo real",
-                            fontSize = 12.sp,
-                            color = PurplePrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        MetricCard(
-                            title = "18",
-                            subtitle = "Exámenes hoy",
-                            badgeText = "+3",
-                            badgeColor = PurpleLightContainer,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "4",
-                            subtitle = "Pendientes",
-                            titleColor = Color(0xFFD32F2F),
-                            badgeColor = Color(0xFFFFEBEE),
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "14",
-                            subtitle = "Validados",
-                            badgeText = "78%",
-                            badgeColor = Color(0xFFE8F5E9),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp).offset(y = (-36).dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Titulo("Actividad reciente")
+                    Actividad("Informe OCT Macular disponible", "Ayer • Dr. Rojas", ColorExito)
+                    Actividad("Receta de lubricante ocular renovada", "Hace 3 días", ColorPrincipal)
+                    Actividad("Control de presión intraocular", "12 Oct • Sucursal Central", ColorTextoSecundario)
                 }
             }
 
-            // 3. Acciones Clínicas Rápidas
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Acciones Clínicas Rápidas",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    Button(
-                        onClick = { onNavigateToExamenes() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Registrar Nuevo Examen",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Icon(Icons.Default.ArrowForward, contentDescription = null)
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("📁 Cargar Archivo", fontSize = 12.sp)
-                        }
-                        OutlinedButton(
-                            onClick = { },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("⏱️ Trazabilidad", fontSize = 12.sp)
-                        }
-                    }
-                }
-            }
-
-            // 4. Pacientes en Espera
+            // 5. Privacidad
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).offset(y = (-36).dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Pacientes en Espera (3)",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    TextButton(onClick = {}) {
-                        Text("Ver Sala Completa", color = PurplePrimary, fontSize = 12.sp)
-                    }
+                    Icon(Icons.Default.Lock, null, tint = ColorTextoSecundario, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tus datos clínicos están protegidos", fontSize = 11.sp, color = ColorTextoSecundario)
                 }
             }
+        }
+    }
 
-            // Paciente 1
-            item {
-                PacienteCard(
-                    nombre = "María Elena Soto",
-                    info = "64 años • Rut: 12.345.678-9",
-                    estado = "En espera",
-                    examen = "OCT Macular",
-                    box = "Box 2 • Protocolo Retina",
-                    hora = "10:30 AM",
-                    accionBoton = "Llamar Box"
-                )
+    // Confirmación de cierre de sesión
+    if (confirmarSalida) {
+        AlertDialog(
+            onDismissRequest = { confirmarSalida = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Deseas salir de tu cuenta? Tendrás que ingresar tus credenciales nuevamente.") },
+            confirmButton = {
+                TextButton(onClick = { confirmarSalida = false; onLogout() }) {
+                    Text("Cerrar sesión", color = ColorAlerta, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmarSalida = false }) { Text("Cancelar") } }
+        )
+    }
+}
+
+@Composable
+private fun Cabecera(usuario: Usuario, onLogoutClick: () -> Unit) {
+    val primerNombre = usuario.nombre.trim().substringBefore(" ")
+    val saludo = if (usuario.rol == "Oftalmólogo") "Dr(a). $primerNombre" else primerNombre
+    val iniciales = usuario.nombre.trim().split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(listOf(ColorPrincipalOscuro, ColorPrincipal)),
+                RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+            )
+            .padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 64.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(52.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(iniciales, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
             }
-
-            // Paciente 2
-            item {
-                PacienteCard(
-                    nombre = "Jorge Valenzuela",
-                    info = "48 años • Glaucoma Control",
-                    estado = "En box",
-                    examen = "Campimetría Computarizada",
-                    box = "Box 1 • Humphrey 24-2",
-                    hora = "11:15 AM",
-                    accionBoton = "Capturar Resultados"
-                )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Bienvenido(a)", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                Text(saludo, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                Surface(shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.18f)) {
+                    Text(
+                        "${usuario.rol} • Sucursal Central",
+                        fontSize = 11.sp,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
-
-            item { Spacer(modifier = Modifier.height(60.dp)) } // Espacio para el FAB
+            IconButton(onClick = onLogoutClick) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = Color.White)
+            }
         }
     }
 }
 
-// Componentes auxiliares pequeños para modularizar la vista
 @Composable
-fun MetricCard(
-    title: String,
-    subtitle: String,
-    badgeText: String? = null,
-    badgeColor: Color,
-    titleColor: Color = Color.Black,
-    modifier: Modifier = Modifier
+private fun ProximaCitaCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconoCirculo(Icons.Default.DateRange)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Próxima cita", fontSize = 11.sp, color = ColorTextoSecundario)
+                Text("Control oftalmológico", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = ColorTextoPrincipal)
+                Text("Mar 21 Oct • 10:30 • Box 2", fontSize = 12.sp, color = ColorTextoSecundario)
+            }
+            Surface(shape = RoundedCornerShape(10.dp), color = ColorExito.copy(alpha = 0.12f)) {
+                Text(
+                    "Confirmada",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorExito,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccesoRapido(
+    icono: ImageVector,
+    titulo: String,
+    detalle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp)
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(18.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            if (badgeText != null) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = badgeColor,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text(
-                        text = badgeText,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.height(14.dp))
-            }
-            Text(
-                text = title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = titleColor
-            )
-            Text(
-                text = subtitle,
-                fontSize = 11.sp,
-                color = Color.Gray
-            )
+        Column(Modifier.padding(14.dp).fillMaxWidth()) {
+            IconoCirculo(icono)
+            Spacer(Modifier.height(10.dp))
+            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextoPrincipal)
+            Text(detalle, fontSize = 11.sp, color = ColorTextoSecundario)
         }
     }
 }
 
 @Composable
-fun PacienteCard(
-    nombre: String,
-    info: String,
-    estado: String,
-    examen: String,
-    box: String,
-    hora: String,
-    accionBoton: String
-) {
+private fun IconoCirculo(icono: ImageVector) {
+    Surface(shape = CircleShape, color = ColorSecundario, modifier = Modifier.size(42.dp)) {
+        Icon(icono, contentDescription = null, tint = ColorPrincipal, modifier = Modifier.padding(10.dp))
+    }
+}
+
+@Composable
+private fun Actividad(titulo: String, detalle: String, color: Color) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
+        shape = RoundedCornerShape(14.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(text = nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(text = info, fontSize = 12.sp, color = Color.Gray)
-                }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = PurpleLightContainer
-                ) {
-                    Text(
-                        text = estado,
-                        color = PurplePrimary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = PurpleSurface
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(text = examen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text(text = box, fontSize = 11.sp, color = Color.Gray)
-                    }
-                    Text(text = "🕒 $hora", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = { },
-                    colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(accionBoton, fontSize = 12.sp)
-                }
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).background(color, CircleShape))
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(titulo, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ColorTextoPrincipal)
+                Text(detalle, fontSize = 11.sp, color = ColorTextoSecundario)
             }
         }
     }
 }
+
+@Composable
+private fun Titulo(texto: String) =
+    Text(texto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = ColorTextoPrincipal)

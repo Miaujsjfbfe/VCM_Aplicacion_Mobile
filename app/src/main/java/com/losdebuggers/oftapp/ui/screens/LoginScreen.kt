@@ -5,283 +5,318 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.losdebuggers.oftapp.ui.theme.*
 import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LoginScreen(
-    viewModel: LoginViewModel = LoginViewModel(),
-    onLoginSuccess: () -> Unit
-) {
-    val rolSeleccionado by viewModel.rolSeleccionado.collectAsState()
-    val rut by viewModel.rut.collectAsState()
-    val clave by viewModel.clave.collectAsState()
-    val recordarSesion by viewModel.recordarSesion.collectAsState()
+private data class Perfil(val titulo: String, val sub: String)
 
-    Box(
+private val perfiles = listOf(
+    Perfil("Tecnólogo", "Exámenes & OCT"),
+    Perfil("Oftalmólogo", "Diagnóstico & Rx"),
+    Perfil("Paciente", "Resultados & Citas"),
+    Perfil("Admin", "Sedes & Auditoría")
+)
+
+/**
+ * Login + Registro en una sola pantalla. Al autenticar, el ViewModel guarda la sesión
+ * en SQLite y MainActivity reemplaza esta vista por Inicio (no hay callback de navegación).
+ */
+@Composable
+fun LoginScreen(viewModel: LoginViewModel) {
+    val ui by viewModel.ui.collectAsState()
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(ColorFondo)
-            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
+        // ---- Cabecera clínica con degradado ----
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(listOf(ColorPrincipalOscuro, ColorPrincipal)),
+                    RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                )
+                .statusBarsPadding()
+                .padding(top = 28.dp, bottom = 56.dp, start = 24.dp, end = 24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Logo Header
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = ColorBlancoTarjetas,
-                shadowElevation = 2.dp,
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(80.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("👁️ OFTALMOLOGÍA", fontWeight = FontWeight.Bold, color = ColorPrincipal, fontSize = 12.sp)
-                    Text("Visión Clara", fontWeight = FontWeight.Bold, color = ColorTextoPrincipal, fontSize = 16.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(72.dp)) {
+                    Icon(
+                        Icons.Default.Visibility,
+                        contentDescription = "OftApp",
+                        tint = ColorPrincipal,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = ColorSecundario
-            ) {
+                Spacer(Modifier.height(12.dp))
+                Text("OftApp", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Text(
-                    text = "🛡️ Portal Clínico & Quirúrgico",
-                    fontSize = 11.sp,
-                    color = ColorPrincipal,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    "Portal clínico oftalmológico",
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.85f)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        // ---- Tarjeta del formulario (solapada sobre la cabecera) ----
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .offset(y = (-32).dp),
+            colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
 
-            Text("Acceso OftApp", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = ColorTextoPrincipal)
-            Text(
-                "Gestión oftalmológica integral, telemetría ocular y expediente clínico seguro.",
-                fontSize = 12.sp,
-                color = ColorTextoSecundario,
-                modifier = Modifier.padding(horizontal = 24.dp),
-                textAlign = TextAlign.Center
-            )
+                // Selector Ingresar / Registrarme
+                ModoSelector(registro = ui.modoRegistro, onCambio = viewModel::cambiarModo)
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-            // Tarjeta de Formulario Principal
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("🪪 Perfil de Ingreso", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextoPrincipal)
-                        Text("1 de 4 disponible", fontSize = 11.sp, color = ColorPrincipal)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Grid de Roles
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Perfil de ingreso", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ColorTextoSecundario)
+                Spacer(Modifier.height(8.dp))
+                // Admin no se puede auto-registrar
+                val disponibles = if (ui.modoRegistro) perfiles.filter { it.titulo != "Admin" } else perfiles
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    disponibles.chunked(2).forEach { fila ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoleCard(
-                                title = "Tecnólogo",
-                                sub = "Exámenes & OCT",
-                                isSelected = rolSeleccionado == "Tecnólogo",
-                                onClick = { viewModel.seleccionarRol("Tecnólogo") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleCard(
-                                title = "Oftalmólogo",
-                                sub = "Diagnóstico & Rx",
-                                isSelected = rolSeleccionado == "Oftalmólogo",
-                                onClick = { viewModel.seleccionarRol("Oftalmólogo") },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoleCard(
-                                title = "Paciente",
-                                sub = "Resultados & Cita",
-                                isSelected = rolSeleccionado == "Paciente",
-                                onClick = { viewModel.seleccionarRol("Paciente") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleCard(
-                                title = "Admin",
-                                sub = "Sedes & Auditoría",
-                                isSelected = rolSeleccionado == "Admin",
-                                onClick = { viewModel.seleccionarRol("Admin") },
-                                modifier = Modifier.weight(1f)
-                            )
+                            fila.forEach { p ->
+                                RoleCard(
+                                    title = p.titulo,
+                                    sub = p.sub,
+                                    isSelected = ui.rol == p.titulo,
+                                    onClick = { viewModel.seleccionarRol(p.titulo) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (fila.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-                    Text("Acceso Rápido de Prueba (Demo)", fontSize = 11.sp, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { viewModel.cargarDemoTecnologo() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = ColorSecundario,
-                                contentColor = ColorPrincipal
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Demo Tecnólogo", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.cargarDemoMedico() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = ColorSecundario,
-                                contentColor = ColorPrincipal
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Demo Médico", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Inputs RUT y Clave
-                    Text("RUT / Identificación Hospitalaria", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = rut,
-                        onValueChange = { viewModel.onRutChange(it) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrincipal) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ColorSecundario,
-                            unfocusedContainerColor = ColorSecundario,
-                            focusedTextColor = ColorTextoPrincipal,
-                            unfocusedTextColor = ColorTextoPrincipal
-                        )
+                if (ui.modoRegistro) {
+                    Campo("Nombre completo", ui.nombre, viewModel::onNombre, Icons.Default.Person)
+                    Spacer(Modifier.height(12.dp))
+                    Campo("RUT", ui.rut, viewModel::onRut, Icons.Default.Info, placeholder = "12.345.678-9")
+                    Spacer(Modifier.height(12.dp))
+                    Campo("Correo electrónico", ui.email, viewModel::onEmail, Icons.Default.Email, teclado = KeyboardType.Email)
+                } else {
+                    Campo(
+                        "Correo o RUT", ui.identificador, viewModel::onIdentificador, Icons.Default.Person,
+                        teclado = KeyboardType.Email
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-                    Text("Clave Institucional", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = clave,
-                        onValueChange = { viewModel.onClaveChange(it) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = ColorPrincipal) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ColorSecundario,
-                            unfocusedContainerColor = ColorSecundario,
-                            focusedTextColor = ColorTextoPrincipal,
-                            unfocusedTextColor = ColorTextoPrincipal
-                        )
-                    )
+                Campo(
+                    label = "Clave institucional",
+                    valor = ui.clave,
+                    onCambio = viewModel::onClave,
+                    icono = Icons.Default.Lock,
+                    teclado = KeyboardType.Password,
+                    esClave = true,
+                    claveVisible = ui.claveVisible,
+                    onToggleClave = viewModel::toggleClaveVisible
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Checkbox y Olvidó Clave
+                // Mensaje de error
+                if (ui.error != null) {
+                    Spacer(Modifier.height(12.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = recordarSesion,
-                                onCheckedChange = { viewModel.toggleRecordarSesion(it) },
-                                colors = CheckboxDefaults.colors(checkedColor = ColorPrincipal)
-                            )
-                            Text("Recordar sesión", fontSize = 12.sp, color = ColorTextoPrincipal)
-                        }
-                        Text(
-                            text = "¿Olvidó su clave?",
-                            fontSize = 12.sp,
-                            color = ColorPrincipal,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { onLoginSuccess() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ColorPrincipal,
-                            contentColor = ColorBlancoTarjetas
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                            .background(ColorAlerta.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("➡️️  Iniciar Sesión Clínica", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.Warning, null, tint = ColorAlerta, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(ui.error!!, color = ColorAlerta, fontSize = 12.sp)
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Button(
+                    onClick = viewModel::enviar,
+                    enabled = !ui.cargando,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorPrincipal, contentColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (ui.cargando) {
+                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                    } else {
+                        Text(
+                            if (ui.modoRegistro) "Crear cuenta" else "Iniciar sesión",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Accesos demo (solo en login)
+                if (!ui.modoRegistro) {
+                    Spacer(Modifier.height(16.dp))
+                    Text("Acceso de prueba (demo)", fontSize = 11.sp, color = ColorTextoSecundario)
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        DemoChip("Tecnólogo", Modifier.weight(1f)) { viewModel.cargarDemo("Tecnólogo", "tecnologo@oftapp.cl") }
+                        DemoChip("Médico", Modifier.weight(1f)) { viewModel.cargarDemo("Oftalmólogo", "medico@oftapp.cl") }
+                        DemoChip("Paciente", Modifier.weight(1f)) { viewModel.cargarDemo("Paciente", "paciente@oftapp.cl") }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        // ---- Aviso de privacidad ----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .offset(y = (-16).dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Lock, null, tint = ColorTextoSecundario, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "Datos clínicos protegidos • Ley 20.584 Derechos del Paciente",
+                fontSize = 10.sp,
+                color = ColorTextoSecundario,
+                textAlign = TextAlign.Center
+            )
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
+}
 
-            // Footer
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = ColorSecundario,
-                modifier = Modifier.fillMaxWidth()
+@Composable
+private fun ModoSelector(registro: Boolean, onCambio: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ColorSecundario, RoundedCornerShape(14.dp))
+            .padding(4.dp)
+    ) {
+        listOf(false to "Ingresar", true to "Registrarme").forEach { (esRegistro, texto) ->
+            val activo = registro == esRegistro
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(if (activo) ColorPrincipal else Color.Transparent, RoundedCornerShape(10.dp))
+                    .clickable { onCambio(esRegistro) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "🔒 Conexión Encriptada TLS 1.3 • Ley 20.584 Derechos Paciente",
-                    fontSize = 10.sp,
-                    color = ColorTextoSecundario,
-                    modifier = Modifier.padding(10.dp),
-                    textAlign = TextAlign.Center
+                    texto,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (activo) Color.White else ColorPrincipal
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
+    }
+}
+
+/** Campo de texto reutilizable con etiqueta, ícono y (opcional) botón mostrar/ocultar clave. */
+@Composable
+private fun Campo(
+    label: String,
+    valor: String,
+    onCambio: (String) -> Unit,
+    icono: ImageVector,
+    teclado: KeyboardType = KeyboardType.Text,
+    placeholder: String? = null,
+    esClave: Boolean = false,
+    claveVisible: Boolean = false,
+    onToggleClave: () -> Unit = {}
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onCambio,
+        label = { Text(label) },
+        placeholder = if (placeholder != null) {
+            { Text(placeholder) }
+        } else null,
+        singleLine = true,
+        leadingIcon = { Icon(icono, contentDescription = null, tint = ColorPrincipal) },
+        trailingIcon = if (esClave) {
+            {
+                IconButton(onClick = onToggleClave) {
+                    Icon(
+                        if (claveVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (claveVisible) "Ocultar clave" else "Mostrar clave",
+                        tint = ColorTextoSecundario
+                    )
+                }
+            }
+        } else null,
+        visualTransformation = if (esClave && !claveVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(keyboardType = teclado),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = ColorSecundario,
+            unfocusedContainerColor = ColorSecundario,
+            focusedBorderColor = ColorPrincipal,
+            unfocusedBorderColor = Color.Transparent,
+            focusedLabelColor = ColorPrincipal,
+            focusedTextColor = ColorTextoPrincipal,
+            unfocusedTextColor = ColorTextoPrincipal
+        )
+    )
+}
+
+@Composable
+private fun DemoChip(texto: String, modifier: Modifier, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrincipal)
+    ) {
+        Text(texto, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
@@ -306,17 +341,18 @@ fun RoleCard(
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            if (isSelected) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = ColorPrincipal,
-                    modifier = Modifier.size(16.dp).align(Alignment.End)
-                )
+        Row(
+            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ColorTextoPrincipal)
+                Text(sub, fontSize = 10.sp, color = ColorTextoSecundario)
             }
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ColorTextoPrincipal)
-            Text(sub, fontSize = 10.sp, color = ColorTextoSecundario)
+            if (isSelected) {
+                Icon(Icons.Default.CheckCircle, null, tint = ColorPrincipal, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
