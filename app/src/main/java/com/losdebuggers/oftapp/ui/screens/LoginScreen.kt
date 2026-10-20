@@ -1,21 +1,20 @@
 package com.losdebuggers.oftapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -27,13 +26,17 @@ import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = LoginViewModel(),
+    viewModel: LoginViewModel,
     onLoginSuccess: () -> Unit
 ) {
-    val rolSeleccionado by viewModel.rolSeleccionado.collectAsState()
+    val isLoginMode by viewModel.isLoginMode.collectAsState()
     val rut by viewModel.rut.collectAsState()
     val clave by viewModel.clave.collectAsState()
+    val nombre by viewModel.nombre.collectAsState()
+    val email by viewModel.email.collectAsState()
     val recordarSesion by viewModel.recordarSesion.collectAsState()
+    val mensajeEstado by viewModel.mensajeEstado.collectAsState()
+    val esError by viewModel.esError.collectAsState()
 
     Box(
         modifier = Modifier
@@ -84,9 +87,14 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Acceso OftApp", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = ColorTextoPrincipal)
             Text(
-                "Gestión oftalmológica integral, telemetría ocular y expediente clínico seguro.",
+                text = if (isLoginMode) "Acceso OftApp" else "Registro de Usuario",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorTextoPrincipal
+            )
+            Text(
+                text = "Gestión oftalmológica integral, telemetría ocular y expediente clínico seguro.",
                 fontSize = 12.sp,
                 color = ColorTextoSecundario,
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -103,152 +111,245 @@ fun LoginScreen(
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+
+                    // Selector de Modo (Iniciar Sesión / Registrarse)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ColorSecundario, RoundedCornerShape(12.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Text("🪪 Perfil de Ingreso", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextoPrincipal)
-                        Text("1 de 4 disponible", fontSize = 11.sp, color = ColorPrincipal)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Grid de Roles
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoleCard(
-                                title = "Tecnólogo",
-                                sub = "Exámenes & OCT",
-                                isSelected = rolSeleccionado == "Tecnólogo",
-                                onClick = { viewModel.seleccionarRol("Tecnólogo") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleCard(
-                                title = "Oftalmólogo",
-                                sub = "Diagnóstico & Rx",
-                                isSelected = rolSeleccionado == "Oftalmólogo",
-                                onClick = { viewModel.seleccionarRol("Oftalmólogo") },
-                                modifier = Modifier.weight(1f)
-                            )
+                        Button(
+                            onClick = { viewModel.setLoginMode(true) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isLoginMode) ColorPrincipal else Color.Transparent,
+                                contentColor = if (isLoginMode) ColorBlancoTarjetas else ColorTextoPrincipal
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            elevation = null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Iniciar Sesión", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoleCard(
-                                title = "Paciente",
-                                sub = "Resultados & Cita",
-                                isSelected = rolSeleccionado == "Paciente",
-                                onClick = { viewModel.seleccionarRol("Paciente") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleCard(
-                                title = "Admin",
-                                sub = "Sedes & Auditoría",
-                                isSelected = rolSeleccionado == "Admin",
-                                onClick = { viewModel.seleccionarRol("Admin") },
-                                modifier = Modifier.weight(1f)
-                            )
+
+                        Button(
+                            onClick = { viewModel.setLoginMode(false) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (!isLoginMode) ColorPrincipal else Color.Transparent,
+                                contentColor = if (!isLoginMode) ColorBlancoTarjetas else ColorTextoPrincipal
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            elevation = null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Registrarse", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Acceso Rápido de Prueba (Demo)", fontSize = 11.sp, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { viewModel.cargarDemoTecnologo() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = ColorSecundario,
-                                contentColor = ColorPrincipal
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Demo Tecnólogo", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.cargarDemoMedico() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = ColorSecundario,
-                                contentColor = ColorPrincipal
-                            ),
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Demo Médico", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Inputs RUT y Clave
-                    Text("RUT / Identificación Hospitalaria", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = rut,
-                        onValueChange = { viewModel.onRutChange(it) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrincipal) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ColorSecundario,
-                            unfocusedContainerColor = ColorSecundario,
-                            focusedTextColor = ColorTextoPrincipal,
-                            unfocusedTextColor = ColorTextoPrincipal
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text("Clave Institucional", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorTextoSecundario)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = clave,
-                        onValueChange = { viewModel.onClaveChange(it) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = ColorPrincipal) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ColorSecundario,
-                            unfocusedContainerColor = ColorSecundario,
-                            focusedTextColor = ColorTextoPrincipal,
-                            unfocusedTextColor = ColorTextoPrincipal
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Checkbox y Olvidó Clave
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = recordarSesion,
-                                onCheckedChange = { viewModel.toggleRecordarSesion(it) },
-                                colors = CheckboxDefaults.colors(checkedColor = ColorPrincipal)
-                            )
-                            Text("Recordar sesión", fontSize = 12.sp, color = ColorTextoPrincipal)
-                        }
+                    if (isLoginMode) {
+                        // Formulario de Iniciar Sesión
                         Text(
-                            text = "¿Olvidó su clave?",
+                            "RUT / Identificación",
                             fontSize = 12.sp,
-                            color = ColorPrincipal,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { }
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = rut,
+                            onValueChange = { viewModel.onRutChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrincipal) },
+                            placeholder = { Text("Ej: 12.345.678-9") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            "Clave / Contraseña",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = clave,
+                            onValueChange = { viewModel.onClaveChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = ColorPrincipal) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            placeholder = { Text("••••••••") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = recordarSesion,
+                                    onCheckedChange = { viewModel.toggleRecordarSesion(it) },
+                                    colors = CheckboxDefaults.colors(checkedColor = ColorPrincipal)
+                                )
+                                Text("Recordar sesión", fontSize = 12.sp, color = ColorTextoPrincipal)
+                            }
+                            Text(
+                                text = "¿Olvidó su clave?",
+                                fontSize = 12.sp,
+                                color = ColorPrincipal,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable { }
+                            )
+                        }
+
+                    } else {
+                        // Formulario de Registro
+                        Text(
+                            "Nombre Completo",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = nombre,
+                            onValueChange = { viewModel.onNombreChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrincipal) },
+                            placeholder = { Text("Ej: Dr. Juan Pérez") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            "RUT / Identificación",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = rut,
+                            onValueChange = { viewModel.onRutChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrincipal) },
+                            placeholder = { Text("Ej: 12.345.678-9") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            "Correo Electrónico",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { viewModel.onEmailChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = ColorPrincipal) },
+                            placeholder = { Text("correo@ejemplo.com") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            "Clave / Contraseña",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorTextoSecundario
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = clave,
+                            onValueChange = { viewModel.onClaveChange(it) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = ColorPrincipal) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            placeholder = { Text("••••••••") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = ColorSecundario,
+                                unfocusedContainerColor = ColorSecundario,
+                                focusedTextColor = ColorTextoPrincipal,
+                                unfocusedTextColor = ColorTextoPrincipal
+                            )
+                        )
+                    }
+
+                    // Mensaje de Alerta (Error o Éxito)
+                    if (mensajeEstado != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (esError) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = mensajeEstado!!,
+                                color = if (esError) Color(0xFFC62828) else Color(0xFF2E7D32),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(10.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Botón de Acción Principal
                     Button(
-                        onClick = { onLoginSuccess() },
+                        onClick = {
+                            if (isLoginMode) {
+                                viewModel.iniciarSesion(onSuccess = onLoginSuccess)
+                            } else {
+                                viewModel.registrarUsuario()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -258,7 +359,11 @@ fun LoginScreen(
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("➡️️  Iniciar Sesión Clínica", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isLoginMode) "➡️  Iniciar Sesión" else "📝  Registrarse",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -281,42 +386,6 @@ fun LoginScreen(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-        }
-    }
-}
-
-@Composable
-fun RoleCard(
-    title: String,
-    sub: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() }
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) ColorPrincipal else ColorSecundario,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) ColorSecundario else ColorBlancoTarjetas
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            if (isSelected) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = ColorPrincipal,
-                    modifier = Modifier.size(16.dp).align(Alignment.End)
-                )
-            }
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ColorTextoPrincipal)
-            Text(sub, fontSize = 10.sp, color = ColorTextoSecundario)
         }
     }
 }

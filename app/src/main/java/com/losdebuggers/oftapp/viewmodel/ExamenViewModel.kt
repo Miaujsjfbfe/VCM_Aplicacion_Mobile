@@ -8,12 +8,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class ExamenViewModel : ViewModel() {
 
-    // Estado interno modificable
     private val _examenes = MutableStateFlow<List<Examen>>(emptyList())
-    // Estado público de solo lectura para la pantalla
     val examenes: StateFlow<List<Examen>> = _examenes.asStateFlow()
 
-    // Estado para guardar el examen seleccionado en el detalle
     private val _examenSeleccionado = MutableStateFlow<Examen?>(null)
     val examenSeleccionado: StateFlow<Examen?> = _examenSeleccionado.asStateFlow()
 
@@ -41,8 +38,7 @@ class ExamenViewModel : ViewModel() {
         )
     }
 
-    // Acción para seleccionar un examen por su ID
     fun seleccionarExamen(examenId: String) {
-        _examenSeleccionado.value = _examenes.value.find { it.id == examenId }
+        _examenSeleccionado.value = _examenes.value.firstOrNull { it.id == examenId }
     }
 }
