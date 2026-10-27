@@ -7,10 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -27,21 +27,17 @@ import com.losdebuggers.oftapp.model.Usuario
 import com.losdebuggers.oftapp.ui.theme.*
 import kotlinx.coroutines.launch
 
-/**
- * Pantalla de inicio de salud: saludo según el usuario en sesión (SQLite),
- * próxima cita, accesos rápidos (recetas, informes, citas, exámenes) y actividad reciente.
- */
 @Composable
 fun InicioScreen(
     usuario: Usuario,
     onNavigateToExamenes: () -> Unit,
+    onNavigateToRecetas: () -> Unit,
     onLogout: () -> Unit
 ) {
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmarSalida by remember { mutableStateOf(false) }
 
-    // Módulos aún no implementados -> aviso breve
     val proximamente: (String) -> Unit = { modulo ->
         scope.launch { snackbar.showSnackbar("$modulo estará disponible pronto") }
     }
@@ -65,21 +61,31 @@ fun InicioScreen(
                 }
             }
 
-            // 3. Accesos rápidos
+            // 3. Accesos rápidos rediseñados (Tarjetas grandes para pacientes con tus Iconos)
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp).offset(y = (-36).dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Titulo("Accesos rápidos")
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AccesoRapido(Icons.Default.Edit, "Recetas", "3 vigentes", Modifier.weight(1f)) { proximamente("Recetas") }
-                        AccesoRapido(Icons.AutoMirrored.Filled.List, "Informes médicos", "2 nuevos", Modifier.weight(1f)) { proximamente("Informes médicos") }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AccesoRapido(Icons.Default.DateRange, "Historial de citas", "12 registros", Modifier.weight(1f)) { proximamente("Historial de citas") }
-                        AccesoRapido(Icons.Default.Visibility, "Exámenes", "OCT • Tonometría", Modifier.weight(1f), onClick = onNavigateToExamenes)
-                    }
+
+                    // Tarjeta Grande: Recetas (Usando Icono de List / Documento)
+                    AccesoRapidoPacienteCard(
+                        icono = Icons.Default.List,
+                        titulo = "Mis Recetas",
+                        descripcion = "Revisa tus recetas de lentes o gotas activas",
+                        badge = "2 vigentes",
+                        onClick = onNavigateToRecetas // <-- Crearemos este callback
+                    )
+
+                    // Tarjeta Grande: Exámenes (Conectado a la navegación y usando Icono de Visibility)
+                    AccesoRapidoPacienteCard(
+                        icono = Icons.Default.Visibility,
+                        titulo = "Mis Exámenes",
+                        descripcion = "Revisa o descarga los resultados de tus exámenes",
+                        badge = "Listos",
+                        onClick = onNavigateToExamenes
+                    )
                 }
             }
 
@@ -130,7 +136,6 @@ fun InicioScreen(
 @Composable
 private fun Cabecera(usuario: Usuario, onLogoutClick: () -> Unit) {
     val primerNombre = usuario.nombre.trim().substringBefore(" ")
-    val saludo = if (usuario.rol == "Oftalmólogo") "Dr(a). $primerNombre" else primerNombre
     val iniciales = usuario.nombre.trim().split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
 
     Box(
@@ -151,10 +156,10 @@ private fun Cabecera(usuario: Usuario, onLogoutClick: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Bienvenido(a)", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
-                Text(saludo, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                Text(primerNombre, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                 Surface(shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.18f)) {
                     Text(
-                        "${usuario.rol} • Sucursal Central",
+                        "Paciente • Sucursal Central",
                         fontSize = 11.sp,
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -198,24 +203,81 @@ private fun ProximaCitaCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun AccesoRapido(
+private fun AccesoRapidoPacienteCard(
     icono: ImageVector,
     titulo: String,
-    detalle: String,
-    modifier: Modifier = Modifier,
+    descripcion: String,
+    badge: String,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(18.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(Modifier.padding(14.dp).fillMaxWidth()) {
-            IconoCirculo(icono)
-            Spacer(Modifier.height(10.dp))
-            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextoPrincipal)
-            Text(detalle, fontSize = 11.sp, color = ColorTextoSecundario)
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconoCirculo(icono)
+                Surface(
+                    color = ColorSecundario,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = badge,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorPrincipal
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = titulo,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorTextoPrincipal
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = descripcion,
+                fontSize = 13.sp,
+                color = ColorTextoSecundario
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Ver detalles",
+                    fontWeight = FontWeight.Bold,
+                    color = ColorPrincipal,
+                    fontSize = 14.sp
+                )
+                IconButton(
+                    onClick = onClick,
+                    modifier = Modifier.size(38.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = ColorPrincipal,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Ir", modifier = Modifier.size(18.dp))
+                }
+            }
         }
     }
 }

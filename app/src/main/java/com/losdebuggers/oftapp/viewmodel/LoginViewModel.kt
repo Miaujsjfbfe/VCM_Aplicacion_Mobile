@@ -19,7 +19,7 @@ data class LoginUiState(
     val modoRegistro: Boolean = false,
     val rol: String = "Tecnólogo",
     val identificador: String = "",   // login: correo o RUT
-    val nombre: String = "",          // registro
+    val nombre: String = "",          // registro   
     val rut: String = "",             // registro
     val email: String = "",           // registro
     val clave: String = "",
