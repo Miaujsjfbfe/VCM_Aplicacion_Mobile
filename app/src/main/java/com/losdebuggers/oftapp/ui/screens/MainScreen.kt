@@ -39,13 +39,15 @@ fun MainScreen(
                 // 1. Inicio
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
-                    label = { Text("Inicio", fontWeight = if (currentRoute == Screen.Inicio.route) FontWeight.Bold else FontWeight.Normal) },
+                    label = { Text("Inicio") },
                     selected = currentRoute == Screen.Inicio.route,
                     onClick = {
-                        navController.navigate(Screen.Inicio.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (currentRoute != Screen.Inicio.route) {
+                            navController.navigate(Screen.Inicio.route) {
+                                // Esto evita que se acumulen pantallas de inicio una sobre otra
+                                popUpTo(Screen.Inicio.route) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         }
                     },
                     colors = NavigationBarItemDefaults.colors(

@@ -29,7 +29,7 @@ fun RecetasScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Receta De Lentes", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = ColorTextoPrincipal)
+                    Text("Receta De Lentes", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {

@@ -1,7 +1,6 @@
 package com.losdebuggers.oftapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -37,18 +35,10 @@ import androidx.compose.ui.unit.sp
 import com.losdebuggers.oftapp.ui.theme.*
 import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 
-private data class Perfil(val titulo: String, val sub: String)
-
-private val perfiles = listOf(
-    Perfil("Tecnólogo", "Exámenes & OCT"),
-    Perfil("Oftalmólogo", "Diagnóstico & Rx"),
-    Perfil("Paciente", "Resultados & Citas"),
-    Perfil("Admin", "Sedes & Auditoría")
-)
-
 /**
- * Login + Registro en una sola pantalla. Al autenticar, el ViewModel guarda la sesión
- * en SQLite y MainActivity reemplaza esta vista por Inicio (no hay callback de navegación).
+- Login + Registro centrado en el paciente en una sola pantalla. Al autenticar, el ViewModel guarda la sesión
+
+- en SQLite y MainActivity reemplaza esta vista por Inicio.
  */
 @Composable
 fun LoginScreen(viewModel: LoginViewModel) {
@@ -105,29 +95,6 @@ fun LoginScreen(viewModel: LoginViewModel) {
 
                 // Selector Ingresar / Registrarme
                 ModoSelector(registro = ui.modoRegistro, onCambio = viewModel::cambiarModo)
-
-                Spacer(Modifier.height(16.dp))
-
-                Text("Perfil de ingreso", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ColorTextoSecundario)
-                Spacer(Modifier.height(8.dp))
-                // Admin no se puede auto-registrar
-                val disponibles = if (ui.modoRegistro) perfiles.filter { it.titulo != "Admin" } else perfiles
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    disponibles.chunked(2).forEach { fila ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            fila.forEach { p ->
-                                RoleCard(
-                                    title = p.titulo,
-                                    sub = p.sub,
-                                    isSelected = ui.rol == p.titulo,
-                                    onClick = { viewModel.seleccionarRol(p.titulo) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            if (fila.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                    }
-                }
 
                 Spacer(Modifier.height(16.dp))
 
@@ -193,15 +160,15 @@ fun LoginScreen(viewModel: LoginViewModel) {
                     }
                 }
 
-                // Accesos demo (solo en login)
+                // Acceso demo enfocado en paciente (solo en login)
                 if (!ui.modoRegistro) {
                     Spacer(Modifier.height(16.dp))
                     Text("Acceso de prueba (demo)", fontSize = 11.sp, color = ColorTextoSecundario)
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        DemoChip("Tecnólogo", Modifier.weight(1f)) { viewModel.cargarDemo("Tecnólogo", "tecnologo@oftapp.cl") }
-                        DemoChip("Médico", Modifier.weight(1f)) { viewModel.cargarDemo("Oftalmólogo", "medico@oftapp.cl") }
-                        DemoChip("Paciente", Modifier.weight(1f)) { viewModel.cargarDemo("Paciente", "paciente@oftapp.cl") }
+                        DemoChip("Cargar Demo Paciente", Modifier.fillMaxWidth()) {
+                            viewModel.cargarDemo("Paciente", "paciente@oftapp.cl")
+                        }
                     }
                 }
             }
@@ -313,46 +280,9 @@ private fun DemoChip(texto: String, modifier: Modifier, onClick: () -> Unit) {
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrincipal)
     ) {
-        Text(texto, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-    }
-}
-
-@Composable
-fun RoleCard(
-    title: String,
-    sub: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() }
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) ColorPrincipal else ColorSecundario,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) ColorSecundario else ColorBlancoTarjetas
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(10.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ColorTextoPrincipal)
-                Text(sub, fontSize = 10.sp, color = ColorTextoSecundario)
-            }
-            if (isSelected) {
-                Icon(Icons.Default.CheckCircle, null, tint = ColorPrincipal, modifier = Modifier.size(18.dp))
-            }
-        }
+        Text(texto, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
