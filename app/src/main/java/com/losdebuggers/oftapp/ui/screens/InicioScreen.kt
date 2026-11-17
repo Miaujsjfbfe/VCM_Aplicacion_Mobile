@@ -1,12 +1,15 @@
 package com.losdebuggers.oftapp.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,6 +47,18 @@ private val AmbarTexto = Color(0xFF92400E)
 private val NaranjaNotificacion = Color(0xFFF59E0B)
 private val VerdeOnline = Color(0xFF22C55E)
 
+data class ActividadItem(
+    val id: Int,
+    val titulo: String,
+    val detalle: String,
+    val tiempo: String,
+    val tipo: String,
+    val icono: ImageVector,
+    val colorFondoIcono: Color,
+    val colorIcono: Color,
+    val colorBorde: Color
+)
+
 /** Sube el elemento [altura] sobre el anterior y reduce el espacio ocupado (sin huecos). */
 private fun Modifier.overlapUp(altura: Dp) = this.layout { measurable, constraints ->
     val placeable = measurable.measure(constraints)
@@ -64,6 +79,32 @@ fun InicioScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val fotoPerfil = rememberFotoPerfil(usuario.rut)
+    var showHistorialBottomSheet by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val listaActividades = remember {
+        listOf(
+            ActividadItem(1, "Examen de Fondo de Ojo", "Informe PDF disponible", "Ayer, 16:30", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
+            ActividadItem(2, "Receta Médica Renovada", "Gotas Lágrimas Artificiales", "Hace 3 días", "Receta", Icons.Default.MedicalServices, TealMuyClaro, TealAcento, TealClaro),
+            ActividadItem(3, "Control Oftalmológico", "Dra. Marcela Silva • Providencia", "12 Oct", "Control", Icons.Default.EventAvailable, AmbarFondo, AmbarTexto, Color(0xFFFDE68A)),
+            ActividadItem(4, "Topografía Corneal", "Resultados listos", "5 Oct", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
+            ActividadItem(5, "Receta Lentes de Contacto", "Medida -2.50 OD / -2.25 OI", "28 Sep", "Receta", Icons.Default.MedicalServices, TealMuyClaro, TealAcento, TealClaro),
+            ActividadItem(6, "Examen de Agudeza Visual", "Certificado emitido", "15 Sep", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
+            ActividadItem(7, "Control Post-Operatorio", "Dr. Juan Pérez • Las Condes", "01 Sep", "Control", Icons.Default.EventAvailable, AmbarFondo, AmbarTexto, Color(0xFFFDE68A))
+        )
+    }
+
+    val actividadesFiltradas = remember(searchQuery, listaActividades) {
+        if (searchQuery.isBlank()) {
+            listaActividades
+        } else {
+            listaActividades.filter {
+                it.titulo.contains(searchQuery, ignoreCase = true) ||
+                it.detalle.contains(searchQuery, ignoreCase = true) ||
+                it.tipo.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
 
     val proximamente: (String) -> Unit = { modulo ->
         scope.launch { snackbar.showSnackbar("$modulo estará disponible pronto") }
@@ -75,7 +116,7 @@ fun InicioScreen(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Cabecera + tarjeta de estado (la tarjeta solo invade el margen inferior de la cabecera)
+            // 1. Cabecera + tarjeta de estado
             item {
                 Column(Modifier.fillMaxWidth()) {
                     Cabecera(
@@ -142,12 +183,12 @@ fun InicioScreen(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TealAcento,
-                        modifier = Modifier.clickable { proximamente("Historial completo") }
+                        modifier = Modifier.clickable { showHistorialBottomSheet = true }
                     )
                 }
             }
 
-            // 4. Lista de actividades
+            // 4. Lista de actividades (muestra las 3 principales en el Home)
             item {
                 Column(
                     modifier = Modifier
@@ -155,33 +196,17 @@ fun InicioScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    ActividadCard(
-                        icono = Icons.Outlined.Description,
-                        titulo = "Examen de Fondo de Ojo",
-                        detalle = "Informe PDF disponible",
-                        tiempo = "Ayer, 16:30",
-                        colorFondoIcono = TealMuyClaro,
-                        colorIcono = TealAcento,
-                        colorBorde = TealClaro
-                    )
-                    ActividadCard(
-                        icono = Icons.Default.MedicalServices,
-                        titulo = "Receta Médica Renovada",
-                        detalle = "Gotas Lágrimas Artificiales",
-                        tiempo = "Hace 3 días",
-                        colorFondoIcono = TealMuyClaro,
-                        colorIcono = TealAcento,
-                        colorBorde = TealClaro
-                    )
-                    ActividadCard(
-                        icono = Icons.Default.EventAvailable,
-                        titulo = "Control Oftalmológico",
-                        detalle = "Dra. Marcela Silva • Providencia",
-                        tiempo = "12 Oct",
-                        colorFondoIcono = AmbarFondo,
-                        colorIcono = AmbarTexto,
-                        colorBorde = Color(0xFFFDE68A)
-                    )
+                    listaActividades.take(3).forEach { act ->
+                        ActividadCard(
+                            icono = act.icono,
+                            titulo = act.titulo,
+                            detalle = act.detalle,
+                            tiempo = act.tiempo,
+                            colorFondoIcono = act.colorFondoIcono,
+                            colorIcono = act.colorIcono,
+                            colorBorde = act.colorBorde
+                        )
+                    }
                 }
             }
 
@@ -205,6 +230,141 @@ fun InicioScreen(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Panel Modal Estático Personalizado con Animación Fluida de Slide & Fade
+        AnimatedVisibility(
+            visible = showHistorialBottomSheet,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        showHistorialBottomSheet = false
+                        searchQuery = ""
+                    },
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.85f)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { /* Consumir clics para que no se cierre al presionar dentro del panel */ },
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    color = ColorBlancoTarjetas,
+                    shadowElevation = 16.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp)
+                    ) {
+                        // Cabecera con Título y Botón Cerrar (X)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Historial Clínico Reciente",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ColorTextoPrincipal
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "Busca y revisa todos tus exámenes, recetas y controles.",
+                                    fontSize = 13.sp,
+                                    color = ColorTextoSecundario
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    showHistorialBottomSheet = false
+                                    searchQuery = ""
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Cerrar",
+                                    tint = ColorTextoPrincipal
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Barra de búsqueda
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Buscar por examen, receta o tipo...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TealAcento) },
+                            trailingIcon = if (searchQuery.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = ColorTextoSecundario)
+                                    }
+                                }
+                            } else null,
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = TealAcento,
+                                unfocusedBorderColor = Color(0xFFD1D5DB)
+                            )
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Contenedor estático con scroll 100% fluido (LazyColumn)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = ColorFondo,
+                            border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    contentPadding = PaddingValues(8.dp)
+                                ) {
+                                    items(actividadesFiltradas) { act ->
+                                        ActividadCard(
+                                            icono = act.icono,
+                                            titulo = act.titulo,
+                                            detalle = act.detalle,
+                                            tiempo = act.tiempo,
+                                            colorFondoIcono = act.colorFondoIcono,
+                                            colorIcono = act.colorIcono,
+                                            colorBorde = act.colorBorde
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -224,10 +384,8 @@ private fun Cabecera(
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(TealOscuro, TealMedio, ColorFondo)))
             .statusBarsPadding()
-            // bottom grande: es el espacio sobre el que se superpone la tarjeta
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 48.dp)
     ) {
-        // Fila superior: clínica + campana
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -273,7 +431,6 @@ private fun Cabecera(
 
         Spacer(Modifier.height(20.dp))
 
-        // Saludo + avatar
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

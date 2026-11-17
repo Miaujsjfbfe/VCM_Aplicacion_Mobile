@@ -1,6 +1,6 @@
-# 📱 Proyecto de Login en Android - Jetpack Compose
+# 📱 OftApp - Portal Clínico Oftalmológico
 
-Este repositorio contiene una aplicación móvil básica de autenticación de usuarios desarrollada como parte del curso de desarrollo móvil. La interfaz permite a los usuarios ingresar sus credenciales y validar su acceso en tiempo real con retroalimentación visual.
+Aplicación móvil desarrollada en **Jetpack Compose** y **Kotlin** para la gestión clínica oftalmológica, autenticación de usuarios, consultas de exámenes, recetas y perfiles clínicos.
 
 ---
 
@@ -11,23 +11,28 @@ Este repositorio contiene una aplicación móvil básica de autenticación de us
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Tecnologías y Arquitectura
 
 * **Lenguaje:** Kotlin
-* **IDE:** Android Studio
-* **UI Framework:** Jetpack Compose
-* **Diseño:** Material Design 3 (Material3)
+* **UI Framework:** Jetpack Compose & Material Design 3 (Material3)
+* **Navegación:** Jetpack Navigation Compose / Navigation 3
+* **Persistencia:** SQLite Local (`OftDatabase`)
+* **Diseño Adaptativo:** `NavigationSuiteScaffold` (Adaptación automática entre teléfono y tablets/plegables)
+* **Pruebas Unitarias:** **JUnit 5** (`junit-jupiter` y `junit-platform-launcher`)
 * **Gestor de Dependencias:** Gradle (Kotlin DSL)
 
 ---
 
-## 🚀 Características de la Aplicación
+## 🚀 Características Principales
 
-* **Interfaz de Login:** Diseño limpio y centrado estructurado con `Column` y componentes Compose.
-* **Manejo de Estados:** Uso de `remember` y `mutableStateOf` para gestionar el texto ingresado y los mensajes de estado.
-* **Seguridad Visual:** Ocultamiento dinámico del campo de contraseña mediante `PasswordVisualTransformation`.
-* **Validación de Credenciales:** Verificación simple de usuario y clave con respuestas dinámicas (mensaje de éxito en verde y de error en rojo).
-* **Compatibilidad:** Implementación de `enableEdgeToEdge()` para una experiencia de pantalla completa.
+* **Autenticación y Roles:** Inicio de sesión y registro con persistencia local en SQLite (roles: *Tecnólogo, Oftalmólogo, Paciente, Admin*).
+* **Navegación Adaptativa:** Interfaz optimizada que se adapta dinámicamente entre barra de navegación inferior (*Bottom Bar*) y riel lateral (*Navigation Rail*) según el dispositivo.
+* **Recursos Nativos Integrados (`NativeResourcesHelper`):**
+  * **Cámara:** Captura de fotos mediante `FileProvider` y contratos nativos.
+  * **Galería y Documentos:** Selección segura de imágenes y archivos PDF.
+  * **Fecha y Hora:** Selectores nativos de Material 3.
+  * **Conectividad:** Monitoreo en tiempo real de la conexión a internet con `ConnectivityManager`.
+* **Pruebas Unitarias con JUnit 5:** Cobertura de pruebas unitarias y parametrizadas ejecutadas sobre la plataforma JUnit 5.
 
 ---
 
@@ -36,4 +41,5 @@ Este repositorio contiene una aplicación móvil básica de autenticación de us
 * **Android Studio:** Ladybug o superior recomendado.
 * **JDK:** Versión 17 o superior.
 * **SDK Mínimo (minSdk):** API 24 (Android 7.0) o superior.
+* **SDK Objetivo (targetSdk / compileSdk):** API 37.
 * **Dispositivo:** Emulador de Android (AVD) o dispositivo físico con Depuración USB activada.
