@@ -10,11 +10,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.losdebuggers.oftapp.model.Usuario
-import com.losdebuggers.oftapp.ui.screens.MainScreen
 import com.losdebuggers.oftapp.ui.screens.LoginScreen
+import com.losdebuggers.oftapp.ui.screens.MainScreen
 import com.losdebuggers.oftapp.ui.theme.ColorPrincipal
 import com.losdebuggers.oftapp.ui.theme.OftAppTheme
 import com.losdebuggers.oftapp.viewmodel.ExamenViewModel
