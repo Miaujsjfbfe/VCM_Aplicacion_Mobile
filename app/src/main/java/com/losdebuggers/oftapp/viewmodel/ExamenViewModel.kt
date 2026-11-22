@@ -22,18 +22,39 @@ class ExamenViewModel : ViewModel() {
         _examenes.value = listOf(
             Examen(
                 id = "1",
-                nombre = "Agudeza Visual",
-                descripcion = "Evaluación de la nitidez y claridad de la visión a corta y larga distancia."
+                categoria = Examen.CategoriaExamen.REFRACCION,
+                medico = "Dr. Álvaro Soto",
+                fecha = "18 Nov 2026",
+                indicacionesMedicas = "Usar corrección óptica indicada para lectura y trabajo en pantalla.",
+                archivoPdf = "examen_1_refraccion.pdf",
+                rutPaciente = "18.765.432-1"
             ),
             Examen(
                 id = "2",
-                nombre = "Tonometría",
-                descripcion = "Medición de la presión intraocular para la detección precoz de glaucoma."
+                categoria = Examen.CategoriaExamen.TONOMETRIA,
+                medico = "Dr. Roberto Díaz",
+                fecha = "04 Nov 2026",
+                indicacionesMedicas = "Presión intraocular dentro de rango normal. Continuar control preventivo.",
+                archivoPdf = "examen_2_tonometria.pdf",
+                rutPaciente = "18.765.432-1"
             ),
             Examen(
                 id = "3",
-                nombre = "Campimetría",
-                descripcion = "Examen del campo visual para detectar pérdidas en la visión periférica."
+                categoria = Examen.CategoriaExamen.FONDO_OJO,
+                medico = "Dra. Marcela Vidal",
+                fecha = "28 Oct 2026",
+                indicacionesMedicas = "Control anual de fondo de ojo; evitar frotar los ojos.",
+                archivoPdf = "examen_3_fondo_ojo.pdf",
+                rutPaciente = "18.765.432-1"
+            ),
+            Examen(
+                id = "4",
+                categoria = Examen.CategoriaExamen.OCT_MACULAR,
+                medico = "Dra. Marcela Vidal",
+                fecha = "12 Nov 2026",
+                indicacionesMedicas = "Sin alteraciones maculares relevantes en este control.",
+                archivoPdf = "examen_4_oct_macular.pdf",
+                rutPaciente = "18.765.432-1"
             )
         )
     }
