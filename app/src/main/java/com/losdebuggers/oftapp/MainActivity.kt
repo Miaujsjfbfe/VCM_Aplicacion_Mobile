@@ -10,12 +10,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.losdebuggers.oftapp.model.Usuario
 import com.losdebuggers.oftapp.ui.screens.LoginScreen
 import com.losdebuggers.oftapp.ui.screens.MainScreen
+import com.losdebuggers.oftapp.ui.screens.tecnico.MainTecnicoScreen
 import com.losdebuggers.oftapp.ui.theme.ColorPrincipal
 import com.losdebuggers.oftapp.ui.theme.OftAppTheme
 import com.losdebuggers.oftapp.viewmodel.ExamenViewModel
@@ -42,11 +41,29 @@ class MainActivity : ComponentActivity() {
                             CircularProgressIndicator(color = ColorPrincipal)
                         }
                         usuario == null -> LoginScreen(viewModel = loginViewModel)
-                        else -> MainScreen(
-                            usuario = usuario!!,
-                            examenViewModel = examenViewModel,
-                            onLogout = loginViewModel::cerrarSesion
-                        )
+                        else -> {
+                            val u = usuario!!
+                            val esTecnico = u.rol.equals("Tecnólogo", ignoreCase = true) ||
+                                    u.rol.equals("Tecnologo", ignoreCase = true) ||
+                                    u.rol.equals("Tecnico", ignoreCase = true) ||
+                                    u.rol.equals("Técnico", ignoreCase = true) ||
+                                    u.rol.equals("Evaluador", ignoreCase = true) ||
+                                    u.email.equals("tecnologo@oftapp.cl", ignoreCase = true)
+
+                            if (esTecnico) {
+                                MainTecnicoScreen(
+                                    usuario = u,
+                                    examenViewModel = examenViewModel,
+                                    onLogout = loginViewModel::cerrarSesion
+                                )
+                            } else {
+                                MainScreen(
+                                    usuario = u,
+                                    examenViewModel = examenViewModel,
+                                    onLogout = loginViewModel::cerrarSesion
+                                )
+                            }
+                        }
                     }
                 }
             }

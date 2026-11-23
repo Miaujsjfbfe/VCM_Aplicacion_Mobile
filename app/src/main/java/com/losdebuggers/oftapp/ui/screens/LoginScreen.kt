@@ -158,14 +158,17 @@ fun LoginScreen(viewModel: LoginViewModel) {
                     }
                 }
 
-                // Acceso demo enfocado en paciente (solo en login)
+                // Acceso demo (paciente y técnico)
                 if (!ui.modoRegistro) {
                     Spacer(Modifier.height(16.dp))
                     Text("Acceso de prueba (demo)", fontSize = 11.sp, color = ColorTextoSecundario)
                     Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        DemoChip("Cargar Demo Paciente", Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DemoChip("Demo Paciente", Modifier.weight(1f)) {
                             viewModel.cargarDemo("Paciente", "paciente@oftapp.cl")
+                        }
+                        DemoChip("Demo Técnico", Modifier.weight(1f)) {
+                            viewModel.cargarDemo("Tecnólogo", "tecnologo@oftapp.cl")
                         }
                     }
                 }

@@ -1,9 +1,12 @@
 package com.losdebuggers.oftapp.ui.screens
 
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -14,36 +17,33 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.losdebuggers.oftapp.model.Examen
 import com.losdebuggers.oftapp.model.ImagenClinica
 import com.losdebuggers.oftapp.ui.theme.*
-import android.graphics.Bitmap
-import androidx.compose.foundation.Image
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import com.losdebuggers.oftapp.utils.renderizarPdf
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
+import com.losdebuggers.oftapp.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.unit.Dp
-import com.losdebuggers.oftapp.utils.*
 
 // --- PALETA ---
 private val VerdeHeader = Color(0xFF004D40)
@@ -387,11 +387,11 @@ private fun CabeceraDetalle(onVolver: () -> Unit) {
     ) {
         IconButton(
             onClick = onVolver,
-            modifier = Modifier.size(40.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
+                contentDescription = "Volver a mis exámenes",
                 tint = Color.White,
                 modifier = Modifier.size(22.dp)
             )
@@ -529,7 +529,7 @@ private fun InformacionExamenCard(examen: Examen) {
 
             Spacer(Modifier.height(10.dp))
 
-            // --- Sobre este examen (más alta) ---
+            // --- Sobre este examen ---
             BloqueInformativo(
                 icono = Icons.Default.Info,
                 titulo = "SOBRE ESTE EXAMEN",
@@ -629,7 +629,6 @@ private fun InformePdfCard(
     examen: Examen,
     onAbrirPdfCompleto: (() -> Unit)? = null
 ) {
-
     val context = LocalContext.current
 
     var expandido by remember(examen.archivoPdf) {
@@ -644,9 +643,19 @@ private fun InformePdfCard(
         mutableStateOf(true)
     }
 
+    var zoomFactor by remember(examen.archivoPdf, expandido) {
+        mutableFloatStateOf(1f)
+    }
+
+    var panOffset by remember(examen.archivoPdf, expandido) {
+        mutableStateOf(Offset.Zero)
+    }
+
     // Procesar el PDF fuera del hilo principal
     LaunchedEffect(examen.archivoPdf) {
         cargando = true
+        zoomFactor = 1f
+        panOffset = Offset.Zero
 
         paginas = withContext(Dispatchers.IO) {
             renderizarPdf(
@@ -656,6 +665,12 @@ private fun InformePdfCard(
         }
 
         cargando = false
+    }
+
+    val ajustarZoom: (Float) -> Unit = { nuevoZoom ->
+        val clamped = nuevoZoom.coerceIn(1f, 3.5f)
+        zoomFactor = clamped
+        if (clamped == 1f) panOffset = Offset.Zero
     }
 
     Card(
@@ -669,17 +684,14 @@ private fun InformePdfCard(
             defaultElevation = 2.dp
         )
     ) {
-
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-
             // ENCABEZADO DEL PDF
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = RojoPdfFondo,
@@ -715,18 +727,21 @@ private fun InformePdfCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                    // Botón redondito para compartir el PDF
+
+                // Botón para compartir el PDF (>= 48.dp)
                 Surface(
                     onClick = { compartirPdf(context, examen.archivoPdf, examen.titulo) },
                     shape = CircleShape,
                     color = TealMuyClaro,
                     border = BorderStroke(1.dp, TealClaro),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier
+                        .size(48.dp)
+                        .semantics { contentDescription = "Compartir informe PDF" }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = "Compartir PDF",
+                            contentDescription = null,
                             tint = TealAcento,
                             modifier = Modifier.size(18.dp)
                         )
@@ -745,89 +760,157 @@ private fun InformePdfCard(
 
             Spacer(Modifier.height(14.dp))
 
-            // VISOR DEL DOCUMENTO
+            // Controles de zoom cuando hay PDF renderizado
+            if (!cargando && paginas.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Zoom: ${(zoomFactor * 100).toInt()}% (${paginas.size} pág.)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TealOscuro
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(
+                            onClick = { ajustarZoom(zoomFactor - 0.5f) },
+                            enabled = zoomFactor > 1f,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomOut,
+                                contentDescription = "Alejar informe PDF",
+                                tint = TealAcento
+                            )
+                        }
+                        IconButton(
+                            onClick = { ajustarZoom(zoomFactor + 0.5f) },
+                            enabled = zoomFactor < 3.5f,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomIn,
+                                contentDescription = "Acercar informe PDF",
+                                tint = TealAcento
+                            )
+                        }
+                        if (zoomFactor > 1f || panOffset != Offset.Zero) {
+                            IconButton(
+                                onClick = {
+                                    zoomFactor = 1f
+                                    panOffset = Offset.Zero
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.RestartAlt,
+                                    contentDescription = "Restablecer zoom del PDF",
+                                    tint = TealOscuro
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // VISOR DEL DOCUMENTO CON SOPORTE DE PELLIZCO Y DESPLAZAMIENTO
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFF2B2B2B),
                 border = BorderStroke(1.dp, Color(0xFF333333))
-                //color = GrisPreview,
-                //border = BorderStroke(1.dp, GrisBorde)
             ) {
-
                 Column(
                     modifier = Modifier.padding(12.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pointerInput(expandido, paginas.size) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    if (paginas.isNotEmpty()) {
+                                        val nextZoom = (zoomFactor * zoom).coerceIn(1f, 3.5f)
+                                        zoomFactor = nextZoom
+                                        if (nextZoom > 1f) {
+                                            val maxX = (size.width * (nextZoom - 1f)) / 2f
+                                            val maxY = (size.height * (nextZoom - 1f)) / 2f
+                                            panOffset = Offset(
+                                                x = (panOffset.x + pan.x * nextZoom).coerceIn(-maxX, maxX),
+                                                y = (panOffset.y + pan.y * nextZoom).coerceIn(-maxY, maxY)
+                                            )
+                                        } else {
+                                            panOffset = Offset.Zero
+                                        }
+                                    }
+                                }
+                            }
+                    ) {
+                        when {
+                            cargando -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(170.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = TealAcento,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
 
-                    when {
-                        cargando -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(170.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = TealAcento,
-                                    modifier = Modifier.size(28.dp)
+                            paginas.isEmpty() -> {
+                                MiniDocumento(
+                                    firma = "Validado por ${examen.medico}"
                                 )
                             }
-                        }
 
-                        paginas.isEmpty() -> {
-                            MiniDocumento(
-                                firma = "Validado por ${examen.medico}"
-                            )
-                        }
+                            else -> {
+                                val modifierZoom = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        scaleX = zoomFactor
+                                        scaleY = zoomFactor
+                                        translationX = panOffset.x
+                                        translationY = panOffset.y
+                                    }
 
-                        else -> {
-
-                            if (!expandido) {
-
-                                // VISTA CONTRAÍDA:
-                                // Solo muestra el inicio de la primera página.
-
-                                Image(
-                                    bitmap = paginas.first().asImageBitmap(),
-                                    contentDescription = "Inicio del informe PDF",
-                                    contentScale = ContentScale.FillWidth,
-                                    alignment = Alignment.TopCenter,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(190.dp)
-                                        .clip(
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                )
-
-                            } else {
-
-                                // VISTA EXPANDIDA:
-                                // Todas las páginas dentro de un visor con scroll.
-
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 480.dp)
-                                        .verticalScroll(
-                                            rememberScrollState()
-                                        ),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-
-                                    paginas.forEachIndexed { indice, bitmap ->
-
-                                        Image(
-                                            bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = "Página ${indice + 1} del informe",
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .aspectRatio(
-                                                    bitmap.width.toFloat() /
-                                                            bitmap.height.toFloat()
-                                                )
-                                        )
+                                if (!expandido) {
+                                    Image(
+                                        bitmap = paginas.first().asImageBitmap(),
+                                        contentDescription = "Vista previa del informe PDF, página 1 de ${paginas.size}",
+                                        contentScale = ContentScale.FillWidth,
+                                        alignment = Alignment.TopCenter,
+                                        modifier = modifierZoom
+                                            .height(190.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                } else {
+                                    Column(
+                                        modifier = modifierZoom
+                                            .heightIn(max = 480.dp)
+                                            .verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        paginas.forEachIndexed { indice, bitmap ->
+                                            Image(
+                                                bitmap = bitmap.asImageBitmap(),
+                                                contentDescription = "Página ${indice + 1} de ${paginas.size} del informe PDF",
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(
+                                                        bitmap.width.toFloat() /
+                                                                bitmap.height.toFloat()
+                                                    )
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -867,7 +950,8 @@ private fun InformePdfCard(
                                 onClick = {
                                     expandido = !expandido
                                 },
-                                enabled = !cargando && paginas.isNotEmpty()
+                                enabled = !cargando && paginas.isNotEmpty(),
+                                modifier = Modifier.heightIn(min = 48.dp)
                             ) {
                                 Text(
                                     if (expandido) "Contraer" else "Ver completo",
@@ -892,11 +976,9 @@ private fun InformePdfCard(
                     }
                 }
             }
-
         }
     }
 }
-
 
 @Composable
 private fun MiniDocumento(firma: String) {
