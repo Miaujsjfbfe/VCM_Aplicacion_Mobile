@@ -3,6 +3,11 @@ package com.losdebuggers.oftapp.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Paleta clínica OftApp (azul-turquesa: confianza, limpieza, salud)
+
+// Acentos adicionales para vista técnico / evaluador
+val TurquesaTecnico = Color(0xFF0E8A9D)
+val TurquesaTecnicoOscuro = Color(0xFF075C6B)
+val TurquesaTecnicoSuave = Color(0xFFDDF4F7)
 val ColorPrincipal = Color(0xFF0B6E80)       // Botones clave, cabeceras, navegación
 val ColorPrincipalOscuro = Color(0xFF084B59) // Degradados / énfasis
 val ColorSecundario = Color(0xFFE3F3F6)      // Fondos de inputs, chips, tarjetas secundarias

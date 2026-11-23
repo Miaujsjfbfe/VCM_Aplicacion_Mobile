@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 /** Estado del formulario (login y registro comparten pantalla). */
 data class LoginUiState(
     val modoRegistro: Boolean = false,
-    val rol: String = "Tecnólogo",
+    val rol: String = "Paciente",
     val identificador: String = "",   // login: correo o RUT
     val nombre: String = "",          // registro   
     val rut: String = "",             // registro
