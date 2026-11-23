@@ -23,7 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,8 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.losdebuggers.oftapp.data.FhirNetwork
 import com.losdebuggers.oftapp.model.Examen
 import com.losdebuggers.oftapp.ui.theme.*
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
@@ -62,9 +64,41 @@ const val TELEFONO_AYUDA = "800400656" // 800-400-OJO
 fun ExamenesScreen(
     examenes: List<Examen>,
     onVolver: () -> Unit,
-    onExamenClick: (String) -> Unit
+    onExamenClick: (String) -> Unit,
+    onAddExamenes: (List<Examen>) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Sincronización automática "bajo el capó" al abrir la pantalla de exámenes
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val datos = FhirNetwork.api.obtener("Observation?_count=3")
+                val recursos = FhirNetwork.recursos(datos)
+                val nuevosExamenes = recursos.mapIndexed { index, res ->
+                    val code = res.getAsJsonObject("code")
+                    val titulo = code?.get("text")?.asString ?: "Examen Clínico Nube #${index + 1}"
+                    val fecha = res.get("effectiveDateTime")?.asString?.take(10) ?: "Reciente"
+                    Examen(
+                        id = "fhir_auto_${System.currentTimeMillis()}_$index",
+                        categoria = Examen.CategoriaExamen.FONDO_OJO,
+                        titulo = titulo,
+                        indicacionesMedicas = "Sincronizado automáticamente desde el servidor clínico HAPI FHIR",
+                        medico = "Dr. Sistema Clínico Cloud",
+                        fecha = fecha,
+                        archivoPdf = "examen_3_fondo_ojo.pdf",
+                        rutPaciente = ""
+                    )
+                }
+                if (nuevosExamenes.isNotEmpty()) {
+                    onAddExamenes(nuevosExamenes)
+                }
+            } catch (_: Exception) {
+                // Silencioso si no hay internet: se muestran los exámenes locales sin interrumpir al usuario
+            }
+        }
+    }
 
     Column(
         modifier = Modifier

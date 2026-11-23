@@ -74,8 +74,7 @@ fun InicioScreen(
     onNavigateToExamenes: () -> Unit,
     onNavigateToRecetas: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToPerfil: () -> Unit = {},
-    onNavigateToFhir: () -> Unit = {}
+    onNavigateToPerfil: () -> Unit = {}
 ) {
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -165,42 +164,6 @@ fun InicioScreen(
                             colorTextoBadge = TealAcento,
                             onClick = onNavigateToRecetas
                         )
-                    }
-                }
-            }
-
-            // 2.5. Acceso al Servidor HAPI FHIR
-            item {
-                Card(
-                    onClick = onNavigateToFhir,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = TealMuyClaro),
-                    border = BorderStroke(1.dp, TealClaro),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = TealClaro,
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.CloudSync, null, tint = TealAcento, modifier = Modifier.size(22.dp))
-                            }
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Servidor HAPI FHIR", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = ColorTextoPrincipal)
-                            Spacer(Modifier.height(2.dp))
-                            Text("Consulta pacientes y observaciones en la nube", fontSize = 12.sp, color = ColorTextoSecundario)
-                        }
-                        Icon(Icons.Default.ChevronRight, null, tint = TealAcento)
                     }
                 }
             }

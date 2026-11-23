@@ -62,4 +62,10 @@ class ExamenViewModel : ViewModel() {
     fun seleccionarExamen(examenId: String) {
         _examenSeleccionado.value = _examenes.value.firstOrNull { it.id == examenId }
     }
+
+    fun agregarExamenes(nuevos: List<Examen>) {
+        val actual = _examenes.value
+        val combinados = (nuevos + actual).distinctBy { it.id }
+        _examenes.value = combinados
+    }
 }
