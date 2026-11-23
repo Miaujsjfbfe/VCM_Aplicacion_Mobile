@@ -11,11 +11,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -26,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.losdebuggers.oftapp.model.Examen
+import com.losdebuggers.oftapp.model.ImagenClinica
 import com.losdebuggers.oftapp.ui.theme.*
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -68,6 +71,7 @@ private val RojoPdfFondo = Color(0xFFFEE2E2)
 private val RojoPdf = Color(0xFFB91C1C)
 private val GrisBorde = Color(0xFFE2E8F0)
 private val GrisSkeleton = Color(0xFFE2E8F0)
+
 @Composable
 fun DetalleExamenScreen(
     examen: Examen,
@@ -75,11 +79,37 @@ fun DetalleExamenScreen(
     onDescargarPdf: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    var imagenSeleccionadaParaVisor by remember { mutableStateOf<ImagenClinica?>(null) }
+    var verPdfEnPantallaCompleta by remember { mutableStateOf(false) }
+
+    val ttsHelper = remember { TextToSpeechHelper(context) }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            ttsHelper.destruir()
+        }
+    }
+    val textoLectura = "Examen ${examen.titulo}. Atendido por el doctor ${examen.medico} en fecha ${examen.fecha}. Indicaciones médicas: ${examen.indicacionesMedicas}"
+
     val manejarDescarga: (String) -> Unit = onDescargarPdf ?: { nombreArchivo ->
         descargarPdfDesdeAssets(
             context = context,
             nombreArchivo = nombreArchivo,
             mensajeExito = "Examen guardado en Descargas"
+        )
+    }
+
+    if (verPdfEnPantallaCompleta) {
+        VisorPdfDialog(
+            archivoPdf = examen.archivoPdf,
+            tituloExamen = examen.titulo,
+            onDismiss = { verPdfEnPantallaCompleta = false }
+        )
+    }
+
+    imagenSeleccionadaParaVisor?.let { imagen ->
+        VisorImagenMedicaDialog(
+            imagenClinica = imagen,
+            onDismiss = { imagenSeleccionadaParaVisor = null }
         )
     }
 
@@ -97,10 +127,82 @@ fun DetalleExamenScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // BOTÓN DE ACCESIBILIDAD Y LECTURA POR VOZ (TEXTTOSPEECH - WCAG 2.2 AA)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Lectura por voz accesible con TextToSpeech para TalkBack" },
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFE0F2FE),
+                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF0284C7),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.VolumeUp,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Lectura Accesible (TTS)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0369A1)
+                            )
+                            Text(
+                                "Escuchar resumen médico en voz alta",
+                                fontSize = 11.sp,
+                                color = Color(0xFF0369A1).copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = { ttsHelper.hablar(textoLectura) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Reproducir voz",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
             InformacionExamenCard(examen = examen)
+
+            if (examen.imagenesClinicas.isNotEmpty()) {
+                SeccionImagenesClinicas(
+                    imagenes = examen.imagenesClinicas,
+                    onImagenClick = { imagenSeleccionadaParaVisor = it }
+                )
+            }
 
             InformePdfCard(
                 examen = examen,
+                onAbrirPdfCompleto = { verPdfEnPantallaCompleta = true }
             )
 
             BotonDescargarInforme(
@@ -110,6 +212,149 @@ fun DetalleExamenScreen(
             AyudaExamen(onClick = {
                 Toast.makeText(context, "Llámanos al 800-400-OJO", Toast.LENGTH_SHORT).show()
             })
+        }
+    }
+}
+
+@Composable
+private fun SeccionImagenesClinicas(
+    imagenes: List<ImagenClinica>,
+    onImagenClick: (ImagenClinica) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = ColorBlancoTarjetas),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = AzulIconoFondo,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.ZoomIn,
+                            contentDescription = null,
+                            tint = AzulTexto,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Estudios e Imágenes Médicas",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorTextoPrincipal
+                    )
+                    Text(
+                        "Coil & Telephoto (Zoom y Desplazamiento)",
+                        fontSize = 11.sp,
+                        color = ColorTextoSecundario
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                imagenes.forEach { imagen ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onImagenClick(imagen) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                coil.compose.AsyncImage(
+                                    model = imagen.urlOAsset,
+                                    contentDescription = imagen.titulo,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
+                                Surface(
+                                    color = Color(0xCC0F172A),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ZoomIn,
+                                            contentDescription = null,
+                                            tint = Color(0xFF38BDF8),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "Tocar para Zoom & Pan",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    color = Color(0xFF0284C7),
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(8.dp)
+                                ) {
+                                    Text(
+                                        text = imagen.ojo,
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = imagen.titulo,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorTextoPrincipal
+                            )
+                            Text(
+                                text = imagen.descripcion,
+                                fontSize = 11.sp,
+                                color = ColorTextoSecundario,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -364,7 +609,10 @@ private fun BloqueInformativo(
 }
 
 @Composable
-private fun InformePdfCard(examen: Examen) {
+private fun InformePdfCard(
+    examen: Examen,
+    onAbrirPdfCompleto: (() -> Unit)? = null
+) {
 
     val context = LocalContext.current
 
@@ -578,7 +826,6 @@ private fun InformePdfCard(examen: Examen) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-
                         Text(
                             text = "Avance del documento",
                             modifier = Modifier.padding(start = 8.dp),
@@ -586,32 +833,46 @@ private fun InformePdfCard(examen: Examen) {
                             color = Color.White.copy(alpha = 0.70f)
                         )
 
-                        TextButton(
-                            onClick = {
-                                expandido = !expandido
-                            },
-                            enabled = !cargando && paginas.isNotEmpty()
-                        ) {
-                            Text(
-                                if (expandido) "Contraer" else "Ver completo",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            onAbrirPdfCompleto?.let { abrir ->
+                                IconButton(
+                                    onClick = abrir,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Fullscreen,
+                                        contentDescription = "Pantalla completa PDF",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
 
-                            Spacer(Modifier.width(4.dp))
+                            TextButton(
+                                onClick = {
+                                    expandido = !expandido
+                                },
+                                enabled = !cargando && paginas.isNotEmpty()
+                            ) {
+                                Text(
+                                    if (expandido) "Contraer" else "Ver completo",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
 
-                            Icon(
-                                imageVector = if (expandido)
-                                    Icons.Default.KeyboardArrowUp
-                                else
-                                    Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
+                                Spacer(Modifier.width(4.dp))
+
+                                Icon(
+                                    imageVector = if (expandido)
+                                        Icons.Default.KeyboardArrowUp
+                                    else
+                                        Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
-
                     }
                 }
             }

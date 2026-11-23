@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.losdebuggers.oftapp.model.Examen
 import com.losdebuggers.oftapp.model.Usuario
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -42,6 +43,19 @@ class OftDatabase private constructor(context: Context) :
                 esta_logueado INTEGER NOT NULL DEFAULT 0
             )"""
         )
+        db.execSQL(
+            """CREATE TABLE examenes_offline (
+                id TEXT PRIMARY KEY,
+                categoria TEXT NOT NULL,
+                titulo TEXT NOT NULL,
+                indicaciones_medicas TEXT,
+                medico TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                archivo_pdf TEXT NOT NULL,
+                rut_paciente TEXT,
+                sincronizado INTEGER NOT NULL DEFAULT 1
+            )"""
+        )
         // Usuarios demo (clave: demo123) para los botones de acceso rápido
         insertar(db, "Camilo Arancibia", "15.420.198-4", "tecnologo@oftapp.cl", "demo123", "Tecnólogo")
         insertar(db, "Valentina Rojas", "12.345.678-9", "medico@oftapp.cl", "demo123", "Oftalmólogo")
@@ -50,6 +64,7 @@ class OftDatabase private constructor(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS examenes_offline")
         db.execSQL("DROP TABLE IF EXISTS sesion")
         db.execSQL("DROP TABLE IF EXISTS usuarios")
         onCreate(db)
@@ -110,6 +125,75 @@ class OftDatabase private constructor(context: Context) :
                 Usuario(it.getLong(0), it.getString(1), it.getString(2), it.getString(3), it.getString(4))
             else null
         }
+    }
+
+    // ---------- Persistencia Offline de Exámenes y Sincronización ----------
+    fun guardarExamenOffline(
+        id: String,
+        categoria: String,
+        titulo: String,
+        indicaciones: String,
+        medico: String,
+        fecha: String,
+        archivoPdf: String,
+        rutPaciente: String,
+        sincronizado: Int = 1
+    ) {
+        val values = ContentValues().apply {
+            put("id", id)
+            put("categoria", categoria)
+            put("titulo", titulo)
+            put("indicaciones_medicas", indicaciones)
+            put("medico", medico)
+            put("fecha", fecha)
+            put("archivo_pdf", archivoPdf)
+            put("rut_paciente", rutPaciente)
+            put("sincronizado", sincronizado)
+        }
+        writableDatabase.insertWithOnConflict("examenes_offline", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun obtenerExamenesOffline(): List<Examen> {
+        val lista = mutableListOf<Examen>()
+        val cursor = readableDatabase.rawQuery("SELECT id, categoria, titulo, indicaciones_medicas, medico, fecha, archivo_pdf, rut_paciente FROM examenes_offline", null)
+        cursor.use {
+            while (it.moveToNext()) {
+                val catStr = it.getString(1)
+                val cat = try {
+                    Examen.CategoriaExamen.valueOf(catStr)
+                } catch (_: Exception) {
+                    Examen.CategoriaExamen.FONDO_OJO
+                }
+                lista.add(
+                    Examen(
+                        id = it.getString(0),
+                        categoria = cat,
+                        titulo = it.getString(2),
+                        indicacionesMedicas = it.getString(3) ?: "",
+                        medico = it.getString(4),
+                        fecha = it.getString(5),
+                        archivoPdf = it.getString(6),
+                        rutPaciente = it.getString(7) ?: ""
+                    )
+                )
+            }
+        }
+        return lista
+    }
+
+    fun marcarExamenSincronizado(id: String) {
+        writableDatabase.execSQL("UPDATE examenes_offline SET sincronizado = 1 WHERE id = ?", arrayOf(id))
+    }
+
+    fun obtenerExamenesPendientesSync(): List<String> {
+        val ids = mutableListOf<String>()
+        val cursor = readableDatabase.rawQuery("SELECT id FROM examenes_offline WHERE sincronizado = 0", null)
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getString(0))
+            }
+        }
+        return ids
     }
 
     // ---------- Utilidades ----------

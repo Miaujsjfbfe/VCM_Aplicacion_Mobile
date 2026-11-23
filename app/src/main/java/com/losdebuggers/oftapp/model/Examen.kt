@@ -1,5 +1,21 @@
 package com.losdebuggers.oftapp.model
 
+enum class TipoEstudioMedica(val etiqueta: String) {
+    RETINOGRAFIA("Retinografía / Fondo de Ojo"),
+    TOPOGRAFIA_CORNEAL("Topografía Corneal"),
+    CAMPIMETRIA("Campimetría Visual (Humphrey)"),
+    OCT_MACULAR("Tomografía OCT Macular")
+}
+
+data class ImagenClinica(
+    val id: String,
+    val tipo: TipoEstudioMedica,
+    val titulo: String,
+    val descripcion: String,
+    val urlOAsset: String,
+    val ojo: String = "Bilateral"
+)
+
 data class Examen(
     val id: String,
     val categoria: CategoriaExamen,
@@ -8,7 +24,8 @@ data class Examen(
     val medico: String,
     val fecha: String,
     val archivoPdf: String, // ej: "examen_fondo_ojo.pdf"
-    val rutPaciente: String = ""
+    val rutPaciente: String = "",
+    val imagenesClinicas: List<ImagenClinica> = emptyList()
 ){
     enum class CategoriaExamen(
         val tituloBase: String,
