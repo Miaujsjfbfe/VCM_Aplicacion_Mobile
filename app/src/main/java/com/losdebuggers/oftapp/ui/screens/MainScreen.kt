@@ -25,6 +25,7 @@ private object RutasMain {
     const val RECETAS = "recetas"
     const val DETALLE_RECETA = "detalle_receta"
     const val PERFIL = "perfil"
+    const val FHIR = "fhir"
 }
 
 @Composable
@@ -104,6 +105,7 @@ fun MainScreen(
                     onNavigateToExamenes = { irA(RutasMain.EXAMENES) },
                     onNavigateToRecetas = { irA(RutasMain.RECETAS) },
                     onNavigateToPerfil = { irA(RutasMain.PERFIL) },
+                    onNavigateToFhir = { navController.navigate(RutasMain.FHIR) },
                     onLogout = onLogout
                 )
             }
@@ -154,6 +156,12 @@ fun MainScreen(
                 PerfilScreen(
                     usuario = usuario,
                     onLogout = onLogout
+                )
+            }
+
+            composable(RutasMain.FHIR) {
+                FhirScreen(
+                    onVolver = { navController.popBackStack() }
                 )
             }
         }
