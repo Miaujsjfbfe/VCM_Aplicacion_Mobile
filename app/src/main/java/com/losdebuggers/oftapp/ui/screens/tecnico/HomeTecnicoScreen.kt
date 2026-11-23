@@ -30,9 +30,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.losdebuggers.oftapp.model.Usuario
+import com.losdebuggers.oftapp.ui.components.RelojEnVivo
+import com.losdebuggers.oftapp.ui.screens.NotificacionesDialog
 import com.losdebuggers.oftapp.ui.screens.rememberFotoPerfil
 import com.losdebuggers.oftapp.ui.theme.*
+import com.losdebuggers.oftapp.viewmodel.NotificacionViewModel
 import kotlinx.coroutines.launch
 
 // --- PALETA TEAL (misma base que InicioScreen de paciente) ---
@@ -75,8 +79,22 @@ fun InicioTecnicoScreen(
     val scope = rememberCoroutineScope()
     val fotoPerfil = rememberFotoPerfil(usuario.rut)
 
+    val notificacionViewModel: NotificacionViewModel = viewModel()
+    val notificaciones by notificacionViewModel.notificaciones.collectAsState()
+    var mostrarNotificacionesDialog by remember { mutableStateOf(false) }
+
     val proximamente: (String) -> Unit = { modulo ->
         scope.launch { snackbar.showSnackbar("$modulo estará disponible pronto") }
+    }
+
+    if (mostrarNotificacionesDialog) {
+        NotificacionesDialog(
+            notificaciones = notificaciones,
+            onMarcarLeida = notificacionViewModel::marcarComoLeida,
+            onMarcarTodasLeidas = notificacionViewModel::marcarTodasComoLeidas,
+            onEliminar = notificacionViewModel::eliminarNotificacion,
+            onDismiss = { mostrarNotificacionesDialog = false }
+        )
     }
 
     Box(
@@ -98,7 +116,8 @@ fun InicioTecnicoScreen(
                     CabeceraTecnico(
                         usuario = usuario,
                         fotoPerfil = fotoPerfil,
-                        onNotificaciones = { proximamente("Notificaciones") },
+                        noLeidasCount = notificaciones.count { !it.leida },
+                        onNotificaciones = { mostrarNotificacionesDialog = true },
                         onAvatar = onNavigateToPerfil
                     )
                     Box(
@@ -301,6 +320,7 @@ fun InicioTecnicoScreen(
 private fun CabeceraTecnico(
     usuario: Usuario,
     fotoPerfil: ImageBitmap?,
+    noLeidasCount: Int = 0,
     onNotificaciones: () -> Unit,
     onAvatar: () -> Unit
 ) {
@@ -320,24 +340,30 @@ private fun CabeceraTecnico(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color.White.copy(alpha = 0.18f),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.White.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                 ) {
-                    Icon(Icons.Default.LocalHospital, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "CLÍNICA VISIÓN CLARA",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.LocalHospital, null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "VISIÓN CLARA",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
+
+                Spacer(Modifier.width(8.dp))
+
+                RelojEnVivo()
             }
 
             Box {
@@ -357,14 +383,24 @@ private fun CabeceraTecnico(
                         )
                     }
                 }
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 2.dp, y = (-2).dp)
-                        .size(10.dp)
-                        .background(NaranjaNotificacion, CircleShape)
-                        .border(2.dp, Color.White, CircleShape)
-                )
+                if (noLeidasCount > 0) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 2.dp, y = (-2).dp)
+                            .size(14.dp)
+                            .background(NaranjaNotificacion, CircleShape)
+                            .border(2.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (noLeidasCount > 9) "9+" else "$noLeidasCount",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
             }
         }
 
