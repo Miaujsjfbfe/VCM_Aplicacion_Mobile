@@ -82,7 +82,15 @@ fun DetalleExamenScreen(
     var imagenSeleccionadaParaVisor by remember { mutableStateOf<ImagenClinica?>(null) }
     var verPdfEnPantallaCompleta by remember { mutableStateOf(false) }
 
-    val ttsHelper = remember { TextToSpeechHelper(context) }
+    var estaLeyendo by remember { mutableStateOf(false) }
+    val ttsHelper = remember {
+        TextToSpeechHelper(
+            context = context,
+            onSpeakingChanged = { leyendo ->
+                estaLeyendo = leyendo
+            }
+        )
+    }
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {
             ttsHelper.destruir()
@@ -149,12 +157,12 @@ fun DetalleExamenScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFF0284C7),
+                            color = if (estaLeyendo) Color(0xFFB91C1C) else Color(0xFF0284C7),
                             modifier = Modifier.size(40.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.VolumeUp,
+                                    imageVector = if (estaLeyendo) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(22.dp)
@@ -164,13 +172,13 @@ fun DetalleExamenScreen(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                "Lectura Accesible (TTS)",
+                                if (estaLeyendo) "Reproduciendo lectura..." else "Lectura Accesible (TTS)",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0369A1)
                             )
                             Text(
-                                "Escuchar resumen médico en voz alta",
+                                if (estaLeyendo) "Toca el botón rojo para detener" else "Escuchar resumen médico en voz alta",
                                 fontSize = 11.sp,
                                 color = Color(0xFF0369A1).copy(alpha = 0.8f)
                             )
@@ -178,13 +186,21 @@ fun DetalleExamenScreen(
                     }
 
                     Button(
-                        onClick = { ttsHelper.hablar(textoLectura) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        onClick = {
+                            if (estaLeyendo) {
+                                ttsHelper.detener()
+                            } else {
+                                ttsHelper.hablar(textoLectura)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (estaLeyendo) Color(0xFFB91C1C) else Color(0xFF0284C7)
+                        ),
                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                     ) {
                         Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Reproducir voz",
+                            imageVector = if (estaLeyendo) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = if (estaLeyendo) "Detener lectura" else "Reproducir voz",
                             modifier = Modifier.size(20.dp)
                         )
                     }
