@@ -225,11 +225,18 @@ fun SubirExamenScreen(
             }
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .background(ColorFondo),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 700.dp)
+                    .padding(16.dp)
+            ) {
             // Barra de progreso verde mostrando el avance de los 3 pasos
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -381,6 +388,7 @@ fun SubirExamenScreen(
             }
         }
     }
+}
 }
 
 @Composable

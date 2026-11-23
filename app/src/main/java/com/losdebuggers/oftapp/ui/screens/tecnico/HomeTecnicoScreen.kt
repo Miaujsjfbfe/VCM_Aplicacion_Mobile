@@ -82,10 +82,13 @@ fun InicioTecnicoScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ColorFondo)
+            .background(ColorFondo),
+        contentAlignment = Alignment.TopCenter
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 800.dp),
             contentPadding = PaddingValues(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

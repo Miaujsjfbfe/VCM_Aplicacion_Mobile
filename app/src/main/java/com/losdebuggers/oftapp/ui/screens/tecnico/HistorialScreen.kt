@@ -176,12 +176,19 @@ fun HistorialExamenesTecnicoScreen(
             }
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .background(ColorFondo),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 850.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
             // Buscador por nombre, RUT o tipo
             OutlinedTextField(
                 value = busqueda,
@@ -290,6 +297,7 @@ fun HistorialExamenesTecnicoScreen(
             }
         }
     }
+}
 }
 
 @Composable
