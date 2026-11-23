@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,11 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.losdebuggers.oftapp.ui.theme.*
 import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 
-/**
-- Login + Registro centrado en el paciente en una sola pantalla. Al autenticar, el ViewModel guarda la sesión
-
-- en SQLite y MainActivity reemplaza esta vista por Inicio.
- */
 @Composable
 fun LoginScreen(viewModel: LoginViewModel) {
     val ui by viewModel.ui.collectAsState()
@@ -107,7 +103,8 @@ fun LoginScreen(viewModel: LoginViewModel) {
                 } else {
                     Campo(
                         "Correo o RUT", ui.identificador, viewModel::onIdentificador, Icons.Default.Person,
-                        teclado = KeyboardType.Email
+                        teclado = KeyboardType.Email,
+                        modifier = Modifier.testTag("correo")
                     )
                 }
 
@@ -121,7 +118,8 @@ fun LoginScreen(viewModel: LoginViewModel) {
                     teclado = KeyboardType.Password,
                     esClave = true,
                     claveVisible = ui.claveVisible,
-                    onToggleClave = viewModel::toggleClaveVisible
+                    onToggleClave = viewModel::toggleClaveVisible,
+                    modifier = Modifier.testTag("clave")
                 )
 
                 // Mensaje de error
@@ -236,7 +234,8 @@ private fun Campo(
     placeholder: String? = null,
     esClave: Boolean = false,
     claveVisible: Boolean = false,
-    onToggleClave: () -> Unit = {}
+    onToggleClave: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = valor,
@@ -260,7 +259,7 @@ private fun Campo(
         } else null,
         visualTransformation = if (esClave && !claveVisible) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = teclado),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = ColorSecundario,
