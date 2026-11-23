@@ -33,6 +33,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.losdebuggers.oftapp.R
 import com.losdebuggers.oftapp.ui.theme.*
 import com.losdebuggers.oftapp.viewmodel.LoginViewModel
 
@@ -59,13 +62,21 @@ fun LoginScreen(viewModel: LoginViewModel) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(72.dp)) {
-                    Icon(
-                        Icons.Default.Visibility,
-                        contentDescription = "OftApp",
-                        tint = ColorPrincipal,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier.size(80.dp),
+                    shadowElevation = 6.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "OftApp Logo",
+                            modifier = Modifier
+                                .size(64.dp)
+                                .padding(4.dp)
+                        )
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("OftApp", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
