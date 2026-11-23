@@ -54,7 +54,6 @@ private val NaranjaIcono = Color(0xFFD9822B)
 private val AzulIconoFondo = Color(0xFFE0F2FE)
 private val AzulIcono = Color(0xFF0284C7)
 
-private val TealAcento = Color(0xFF0F766E)
 private val TealClaro = Color(0xFFCCFBF1)
 private val TealMuyClaro = Color(0xFFE6FAF7)
 
@@ -69,25 +68,41 @@ fun ExamenesScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var listaExamenes by remember { mutableStateOf(examenes) }
 
-    // Sincronización automática "bajo el capó" al abrir la pantalla de exámenes
+    LaunchedEffect(examenes) {
+        listaExamenes = examenes
+    }
+
+    // Sincronización automática "bajo el capó" con mapeo estricto a oftalmología
     LaunchedEffect(Unit) {
         scope.launch {
             try {
                 val datos = FhirNetwork.api.obtener("Observation?_count=3")
                 val recursos = FhirNetwork.recursos(datos)
+                val categoriasDisponibles = listOf(
+                    Examen.CategoriaExamen.FONDO_OJO,
+                    Examen.CategoriaExamen.TONOMETRIA,
+                    Examen.CategoriaExamen.REFRACCION,
+                    Examen.CategoriaExamen.OCT_MACULAR
+                )
+
                 val nuevosExamenes = recursos.mapIndexed { index, res ->
-                    val code = res.getAsJsonObject("code")
-                    val titulo = code?.get("text")?.asString ?: "Examen Clínico Nube #${index + 1}"
+                    val cat = categoriasDisponibles[index % categoriasDisponibles.size]
                     val fecha = res.get("effectiveDateTime")?.asString?.take(10) ?: "Reciente"
                     Examen(
                         id = "fhir_auto_${System.currentTimeMillis()}_$index",
-                        categoria = Examen.CategoriaExamen.FONDO_OJO,
-                        titulo = titulo,
-                        indicacionesMedicas = "Sincronizado automáticamente desde el servidor clínico HAPI FHIR",
+                        categoria = cat,
+                        titulo = cat.tituloBase,
+                        indicacionesMedicas = "Sincronizado automáticamente desde el servidor clínico HAPI FHIR (${cat.descripcionSobreExamen})",
                         medico = "Dr. Sistema Clínico Cloud",
                         fecha = fecha,
-                        archivoPdf = "examen_3_fondo_ojo.pdf",
+                        archivoPdf = when(cat) {
+                            Examen.CategoriaExamen.FONDO_OJO -> "examen_3_fondo_ojo.pdf"
+                            Examen.CategoriaExamen.TONOMETRIA -> "examen_2_tonometria.pdf"
+                            Examen.CategoriaExamen.REFRACCION -> "examen_1_refraccion.pdf"
+                            Examen.CategoriaExamen.OCT_MACULAR -> "examen_4_oct_macular.pdf"
+                        },
                         rutPaciente = ""
                     )
                 }
@@ -95,7 +110,7 @@ fun ExamenesScreen(
                     onAddExamenes(nuevosExamenes)
                 }
             } catch (_: Exception) {
-                // Silencioso si no hay internet: se muestran los exámenes locales sin interrumpir al usuario
+                // Silencioso si no hay internet
             }
         }
     }
@@ -114,7 +129,7 @@ fun ExamenesScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            examenes.forEach { examen ->
+            listaExamenes.forEach { examen ->
                 ExamenCard(
                     examen = examen,
                     onClick = { onExamenClick(examen.id) }

@@ -101,6 +101,7 @@ fun MainScreen(
             composable(RutasMain.INICIO) {
                 InicioScreen(
                     usuario = usuario,
+                    examenes = examenes,
                     onNavigateToExamenes = { irA(RutasMain.EXAMENES) },
                     onNavigateToRecetas = { irA(RutasMain.RECETAS) },
                     onNavigateToPerfil = { irA(RutasMain.PERFIL) },

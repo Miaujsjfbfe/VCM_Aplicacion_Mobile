@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.losdebuggers.oftapp.model.Examen
 import com.losdebuggers.oftapp.model.Usuario
 import com.losdebuggers.oftapp.ui.theme.*
 import kotlinx.coroutines.launch
@@ -71,6 +72,7 @@ private fun Modifier.overlapUp(altura: Dp) = this.layout { measurable, constrain
 @Composable
 fun InicioScreen(
     usuario: Usuario,
+    examenes: List<Examen>,
     onNavigateToExamenes: () -> Unit,
     onNavigateToRecetas: () -> Unit,
     onLogout: () -> Unit,
@@ -82,16 +84,29 @@ fun InicioScreen(
     var showHistorialBottomSheet by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val listaActividades = remember {
-        listOf(
-            ActividadItem(1, "Examen de Fondo de Ojo", "Informe PDF disponible", "Ayer, 16:30", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
-            ActividadItem(2, "Receta Médica Renovada", "Gotas Lágrimas Artificiales", "Hace 3 días", "Receta", Icons.Default.MedicalServices, TealMuyClaro, TealAcento, TealClaro),
-            ActividadItem(3, "Control Oftalmológico", "Dra. Marcela Silva • Providencia", "12 Oct", "Control", Icons.Default.EventAvailable, AmbarFondo, AmbarTexto, Color(0xFFFDE68A)),
-            ActividadItem(4, "Topografía Corneal", "Resultados listos", "5 Oct", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
-            ActividadItem(5, "Receta Lentes de Contacto", "Medida -2.50 OD / -2.25 OI", "28 Sep", "Receta", Icons.Default.MedicalServices, TealMuyClaro, TealAcento, TealClaro),
-            ActividadItem(6, "Examen de Agudeza Visual", "Certificado emitido", "15 Sep", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
-            ActividadItem(7, "Control Post-Operatorio", "Dr. Juan Pérez • Las Condes", "01 Sep", "Control", Icons.Default.EventAvailable, AmbarFondo, AmbarTexto, Color(0xFFFDE68A))
-        )
+    // Convertir exámenes dinámicos (locales y sincronizados de HAPI FHIR) en ActividadItem
+    val listaActividades = remember(examenes) {
+        if (examenes.isNotEmpty()) {
+            examenes.mapIndexed { index, examen ->
+                ActividadItem(
+                    id = examen.id.hashCode(),
+                    titulo = examen.titulo,
+                    detalle = "Atendido por ${examen.medico}",
+                    tiempo = examen.fecha,
+                    tipo = "Examen",
+                    icono = Icons.Outlined.Description,
+                    colorFondoIcono = TealMuyClaro,
+                    colorIcono = TealAcento,
+                    colorBorde = TealClaro
+                )
+            }
+        } else {
+            listOf(
+                ActividadItem(1, "Examen de Fondo de Ojo", "Informe PDF disponible", "Ayer, 16:30", "Examen", Icons.Outlined.Description, TealMuyClaro, TealAcento, TealClaro),
+                ActividadItem(2, "Receta Médica Renovada", "Gotas Lágrimas Artificiales", "Hace 3 días", "Receta", Icons.Default.MedicalServices, TealMuyClaro, TealAcento, TealClaro),
+                ActividadItem(3, "Control Oftalmológico", "Dra. Marcela Silva • Providencia", "12 Oct", "Control", Icons.Default.EventAvailable, AmbarFondo, AmbarTexto, Color(0xFFFDE68A))
+            )
+        }
     }
 
     val actividadesFiltradas = remember(searchQuery, listaActividades) {
@@ -148,7 +163,7 @@ fun InicioScreen(
                             icono = Icons.Outlined.FolderOpen,
                             titulo = "Mis Exámenes",
                             descripcion = "Descarga de informes",
-                            badge = "1 nuevo",
+                            badge = "${examenes.size} nuevos",
                             colorBadge = AmbarFondo,
                             colorTextoBadge = AmbarTexto,
                             onClick = onNavigateToExamenes
@@ -188,7 +203,7 @@ fun InicioScreen(
                 }
             }
 
-            // 4. Lista de actividades (muestra las 3 principales en el Home)
+            // 4. Lista de actividades (muestra las 3 principales sincronizadas en el Home)
             item {
                 Column(
                     modifier = Modifier
