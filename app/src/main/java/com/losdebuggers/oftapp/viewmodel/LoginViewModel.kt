@@ -4,8 +4,10 @@ import android.app.Application
 import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.losdebuggers.oftapp.data.InsforgeClient
 import com.losdebuggers.oftapp.data.OftDatabase
 import com.losdebuggers.oftapp.model.Usuario
+import dev.insforge.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,28 +70,84 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         LoginUiState(rol = rol, identificador = email, clave = "demo123")
     }
 
-    // ---- Login / Registro ----
+    // ---- Login / Registro con Insforge + Fallback Local ----
     fun enviar() {
         val s = _ui.value
         if (s.cargando) return
         viewModelScope.launch {
             _ui.update { it.copy(cargando = true, error = null) }
-            val resultado = withContext(Dispatchers.IO) {
-                val r: Result<Usuario> = if (s.modoRegistro) validarRegistro(s) ?: db.registrar(s.nombre, s.rut, s.email, s.clave, s.rol)
-                else if (s.identificador.isBlank() || s.clave.isBlank())
-                    Result.failure(IllegalArgumentException("Ingrese su correo o RUT y su clave"))
-                else db.autenticar(s.identificador, s.clave, s.rol)
-                // Éxito: guardar esta_logueado = 1 en SQLite
-                r.getOrNull()?.let { db.iniciarSesion(it.id) }
-                r
+
+            if (s.modoRegistro) {
+                // Registro local (o Insforge si aplica)
+                val resultado = withContext(Dispatchers.IO) {
+                    val r = validarRegistro(s) ?: db.registrar(s.nombre, s.rut, s.email, s.clave, s.rol)
+                    r.getOrNull()?.let { db.iniciarSesion(it.id) }
+                    r
+                }
+                resultado.fold(
+                    onSuccess = { u ->
+                        _usuario.value = u
+                        _ui.value = LoginUiState()
+                    },
+                    onFailure = { e -> _ui.update { it.copy(cargando = false, error = e.message) } }
+                )
+                return@launch
             }
-            resultado.fold(
-                onSuccess = { u ->
-                    _usuario.value = u          // MainActivity reemplaza Login por Inicio
-                    _ui.value = LoginUiState()  // limpia credenciales de memoria
-                },
-                onFailure = { e -> _ui.update { it.copy(cargando = false, error = e.message) } }
-            )
+
+            if (s.identificador.isBlank() || s.clave.isBlank()) {
+                _ui.update { it.copy(cargando = false, error = "Ingrese su correo o RUT y su clave") }
+                return@launch
+            }
+
+            // Intentar autenticación en Insforge
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    InsforgeClient.client.auth.signIn(
+                        email = s.identificador.trim(),
+                        password = s.clave
+                    )
+                }
+                val insforgeUser = response.user
+                val usuario = Usuario(
+                    id = 1L,
+                    nombre = insforgeUser.name ?: "Usuario",
+                    rut = "12.345.678-9",
+                    email = insforgeUser.email,
+                    rol = s.rol
+                )
+                withContext(Dispatchers.IO) { db.iniciarSesion(usuario.id) }
+                _usuario.value = usuario
+                _ui.value = LoginUiState()
+            } catch (e: Exception) {
+                // Fallback a autenticación local SQLite si falla la red o Insforge
+                try {
+                    val resultadoLocal = withContext(Dispatchers.IO) {
+                        db.autenticar(s.identificador, s.clave, s.rol)
+                    }
+                    resultadoLocal.fold(
+                        onSuccess = { u ->
+                            withContext(Dispatchers.IO) { db.iniciarSesion(u.id) }
+                            _usuario.value = u
+                            _ui.value = LoginUiState()
+                        },
+                        onFailure = {
+                            _ui.update {
+                                it.copy(
+                                    cargando = false,
+                                    error = "Credenciales inválidas o error de conexión con Insforge."
+                                )
+                            }
+                        }
+                    )
+                } catch (_: Exception) {
+                    _ui.update {
+                        it.copy(
+                            cargando = false,
+                            error = "Error al iniciar sesión: ${e.localizedMessage ?: "Revise sus datos"}"
+                        )
+                    }
+                }
+            }
         }
     }
 
